@@ -72,7 +72,7 @@ public class AlarmScheduler {
     private void setAlarm (Long nextAlarmTime){
         Intent intent = new Intent(MainActivity.getContext(),AlarmReceiver.class);
 //        intent.setAction("ACTION_UPDATE_ALARM");
-        alarmManager.set(AlarmManager.RTC_WAKEUP, nextAlarmTime, PendingIntent.getBroadcast(MainActivity.getContext(), 1, intent, PendingIntent.FLAG_UPDATE_CURRENT));
+        alarmManager.set(AlarmManager.RTC_WAKEUP, nextAlarmTime, PendingIntent.getBroadcast(MainActivity.getContext(), 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
     }
 
     private void deleteAlarm(){
@@ -80,7 +80,7 @@ public class AlarmScheduler {
         if (MainActivity.getContext() == null)
             return;
         Intent i = new Intent(MainActivity.getContext(),AlarmReceiver.class);
-        PendingIntent p = PendingIntent.getBroadcast(MainActivity.getContext(), 1, i, 0);
+        PendingIntent p = PendingIntent.getBroadcast(MainActivity.getContext(), 1, i, PendingIntent.FLAG_IMMUTABLE);
         alarmManager.cancel(p);
         p.cancel();
     }

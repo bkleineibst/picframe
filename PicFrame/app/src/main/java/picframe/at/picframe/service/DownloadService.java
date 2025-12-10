@@ -1,8 +1,12 @@
 package picframe.at.picframe.service;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.pm.ServiceInfo;
+import android.os.Build;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
@@ -37,6 +41,7 @@ import picframe.at.picframe.settings.SettingsDefaults;
 public class DownloadService extends Service implements ServiceCallbacks {
     private final String TAG = this.getClass().getSimpleName();
     private static final boolean DEBUG = true;
+    private static final String CHANNEL_ID = "picframe_download_channel";
 
     private LocalBroadcastManager broadcastManager;
     private NotificationCompat.Builder notificationBuilder;
@@ -54,6 +59,55 @@ public class DownloadService extends Service implements ServiceCallbacks {
     @Override
     public void onCreate() {
         if (DEBUG)  Log.d(TAG, this.getClass().getSimpleName() + "  -- onCreate");
+        createNotificationChannel();
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "PicFrame Downloads";
+            String description = "Notifications for PicFrame download progress";
+            int importance = NotificationManager.IMPORTANCE_LOW;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    // Helper method to build notification with channel support for Android O+
+    private Notification buildNotificationWithChannel() {
+        Notification notification = notificationBuilder.build();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // For Android O+, we need to set the channel ID on the notification
+            // Since old support library doesn't support channels, we rebuild with native builder
+            Notification.Builder nativeBuilder = new Notification.Builder(this, CHANNEL_ID);
+            nativeBuilder.setSmallIcon(notification.icon);
+            nativeBuilder.setLargeIcon(notification.largeIcon);
+            nativeBuilder.setContentTitle(notification.extras.getCharSequence(Notification.EXTRA_TITLE));
+            nativeBuilder.setContentText(notification.extras.getCharSequence(Notification.EXTRA_TEXT));
+            nativeBuilder.setSubText(notification.extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
+            nativeBuilder.setContentIntent(notification.contentIntent);
+            nativeBuilder.setOngoing((notification.flags & Notification.FLAG_ONGOING_EVENT) != 0);
+            nativeBuilder.setAutoCancel((notification.flags & Notification.FLAG_AUTO_CANCEL) != 0);
+            nativeBuilder.setOnlyAlertOnce(true);
+            nativeBuilder.setVisibility(Notification.VISIBILITY_SECRET);
+            if (notification.extras.containsKey(Notification.EXTRA_PROGRESS)) {
+                int progress = notification.extras.getInt(Notification.EXTRA_PROGRESS);
+                int max = notification.extras.getInt(Notification.EXTRA_PROGRESS_MAX);
+                boolean indeterminate = notification.extras.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE);
+                nativeBuilder.setProgress(max, progress, indeterminate);
+            }
+            // Copy actions if any
+            if (notification.actions != null) {
+                for (Notification.Action action : notification.actions) {
+                    nativeBuilder.addAction(action);
+                }
+            }
+            return nativeBuilder.build();
+        }
+        return notification;
     }
 
     @Override
@@ -80,8 +134,9 @@ public class DownloadService extends Service implements ServiceCallbacks {
         if (notificationManager == null)
             notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
         // get new Notification Builder
-        if (notificationBuilder == null)
+        if (notificationBuilder == null) {
             notificationBuilder = new NotificationCompat.Builder(this);
+        }
 
         // set up Intent to open activity from notification
         mainActIntent = new Intent(this, MainActivity.class);
@@ -135,7 +190,11 @@ public class DownloadService extends Service implements ServiceCallbacks {
             // show basic start notification
             showNotification(Keys.NotificationStates.START, 0, null);
             // more resources to handle service (forces notification with ongoing flag)
-            startForeground(Keys.NOTIFICATION_ID, notificationBuilder.build());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(Keys.NOTIFICATION_ID, buildNotificationWithChannel(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+            } else {
+                startForeground(Keys.NOTIFICATION_ID, buildNotificationWithChannel());
+            }
         }
         // restart service until it is stopped
         return Service.START_STICKY;
@@ -252,9 +311,9 @@ public class DownloadService extends Service implements ServiceCallbacks {
     private void showNotification(Keys.NotificationStates notification_state, int progress, String msg) {
 
         PendingIntent mainPendIntent = PendingIntent
-                .getActivity(this, 0, mainActIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                .getActivity(this, 0, mainActIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stopDownloadPendIntent = PendingIntent
-                .getService(this, 0, stopDownloadIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                .getService(this, 0, stopDownloadIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         notificationBuilder
             .setSmallIcon(android.R.drawable.stat_sys_download_done)// set tickerIcon (download-icon)
             .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher)) // set app-icon
@@ -335,7 +394,7 @@ public class DownloadService extends Service implements ServiceCallbacks {
                         .setSubText(getString(R.string.service_notif_stoppedSubText));
             }
         }
-        notificationManager.notify(Keys.NOTIFICATION_ID, notificationBuilder.build());
+        notificationManager.notify(Keys.NOTIFICATION_ID, buildNotificationWithChannel());
     }
 
     /* CALLBACKS */

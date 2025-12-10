@@ -9,13 +9,15 @@ dependencies {
 }
 
 android {
-    compileSdkVersion 21
-    buildToolsVersion "21.1.2"
+    compileSdkVersion 34
+    buildToolsVersion "30.0.3"
+    
+    useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
         applicationId "picframe.at.picframe"
-        minSdkVersion 8
-        targetSdkVersion 21
+        minSdkVersion 21
+        targetSdkVersion 34
         versionCode 13
         versionName "1.6.4"
     }

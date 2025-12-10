@@ -3,25 +3,32 @@
     package="picframe.at.picframe" >
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-        android:name=".activities._MainApp">
+        android:name=".activities._MainApp"
+        android:requestLegacyExternalStorage="true">
         <service
             android:name=".service.DownloadService"
-            android:exported="false" >
+            android:exported="false"
+            android:foregroundServiceType="dataSync" >
         </service>
         <activity
             android:launchMode="singleTask"
             android:name=".activities.MainActivity"
             android:label="@string/app_name"
+            android:exported="true"
             android:screenOrientation="sensorLandscape" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -63,7 +70,8 @@
                 android:value=".activities.MainActivity" />
         </activity>
         <!-- Register the Alarm Receiver -->
-        <receiver android:name=".helper.alarm.AlarmReceiver">
+        <receiver android:name=".helper.alarm.AlarmReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="ACTION_UPDATE_ALARM">
                 </action>

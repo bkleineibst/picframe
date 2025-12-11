@@ -405,8 +405,14 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
                 String mimeType = remoteFile.getMimeType();
                 switch (mimeType) {
                     case "DIR":
-                        if (DEBUG) Log.i(TAG, "remote folder[" + mimeType + "]: " + remoteFile.getRemotePath());
-                        remoteReadAnyFolder(remoteFile.getRemotePath());
+                        // Skip Synology @eaDir metadata folders
+                        String remotePath = remoteFile.getRemotePath();
+                        if (remotePath.contains("@eaDir")) {
+                            if (DEBUG) Log.i(TAG, "Skipping Synology metadata folder: " + remotePath);
+                            break;
+                        }
+                        if (DEBUG) Log.i(TAG, "remote folder[" + mimeType + "]: " + remotePath);
+                        remoteReadAnyFolder(remotePath);
                         break;
                     case "image/jpeg":
                     case "image/png":

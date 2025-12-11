@@ -78,6 +78,10 @@ public class DownloadService extends Service implements ServiceCallbacks {
 
     // Helper method to build notification with channel support for Android O+
     private Notification buildNotificationWithChannel() {
+        // If notificationBuilder is not yet initialized, create a basic notification
+        if (notificationBuilder == null) {
+            return buildBasicNotification();
+        }
         Notification notification = notificationBuilder.build();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // For Android O+, we need to set the channel ID on the notification
@@ -108,6 +112,27 @@ public class DownloadService extends Service implements ServiceCallbacks {
             return nativeBuilder.build();
         }
         return notification;
+    }
+
+    // Build a basic notification for immediate startForeground() call
+    private Notification buildBasicNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder nativeBuilder = new Notification.Builder(this, CHANNEL_ID);
+            nativeBuilder.setSmallIcon(android.R.drawable.stat_sys_download);
+            nativeBuilder.setContentTitle(getString(R.string.app_name));
+            nativeBuilder.setContentText(getString(R.string.service_notif_startDownloadText));
+            nativeBuilder.setOngoing(true);
+            nativeBuilder.setOnlyAlertOnce(true);
+            nativeBuilder.setVisibility(Notification.VISIBILITY_SECRET);
+            return nativeBuilder.build();
+        } else {
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+            builder.setSmallIcon(android.R.drawable.stat_sys_download);
+            builder.setContentTitle(getString(R.string.app_name));
+            builder.setContentText(getString(R.string.service_notif_startDownloadText));
+            builder.setOngoing(true);
+            return builder.build();
+        }
     }
 
     @Override

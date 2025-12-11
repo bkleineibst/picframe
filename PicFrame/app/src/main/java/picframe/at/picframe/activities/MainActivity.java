@@ -27,6 +27,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -262,7 +263,11 @@ public class MainActivity extends ActionBarActivity {
                 debug("dowdnload now clicked");
                 Intent startDownloadIntent = new Intent(mContext, DownloadService.class);
                 startDownloadIntent.setAction(Keys.ACTION_STARTDOWNLOAD);
-                startService(startDownloadIntent);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(startDownloadIntent);
+                } else {
+                    startService(startDownloadIntent);
+                }
                 return true;
             case R.id.action_about:
                 myIntent = new Intent(this, StatusActivity.class);
@@ -552,9 +557,13 @@ public class MainActivity extends ActionBarActivity {
                     if (AppData.sourceTypes.OwnCloud.equals(AppData.getSourceType())) {
                         debug("trying OC check");
                         //startConnectionCheck();
-                        Intent startDownloadIntent = new Intent(mContext, DownloadService.class);
-                        startDownloadIntent.setAction(Keys.ACTION_STARTDOWNLOAD);
-                        startService(startDownloadIntent);
+                        Intent startDownloadIntent2 = new Intent(mContext, DownloadService.class);
+                        startDownloadIntent2.setAction(Keys.ACTION_STARTDOWNLOAD);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(startDownloadIntent2);
+                        } else {
+                            startService(startDownloadIntent2);
+                        }
                         return true;
                     }// else if (AppData.getSourceType().equals(AppData.sourceTypes.Dropbox))
                     {

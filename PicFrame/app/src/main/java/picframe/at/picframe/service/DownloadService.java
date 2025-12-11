@@ -273,13 +273,13 @@ public class DownloadService extends Service implements ServiceCallbacks {
             File dir = new File(folder);
             if (dir.exists() && dir.isDirectory())
                 continue;
-            dirCreated = dir.mkdir();
-            if (dirCreated)
-                if (DEBUG) Log.i(TAG, "Creating folder: >" +dir+ "< successful");
-                else {
-                    if (DEBUG) Log.i(TAG, "Creating folder: >" +dir+ "< FAILED!");
-                    return false;
-                }
+            dirCreated = dir.mkdirs();
+            if (dirCreated) {
+                if (DEBUG) Log.i(TAG, "Creating folder: >" + dir + "< successful");
+            } else {
+                if (DEBUG) Log.i(TAG, "Creating folder: >" + dir + "< FAILED!");
+                return false;
+            }
         }
         File folder = new File(folderList.get(1));
         if (DEBUG) Log.i(TAG, "deleting files in cache dir before downloading");

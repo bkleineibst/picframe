@@ -328,7 +328,7 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
                 File dirMaking =  new File(pathToCreate);
                 if (dirMaking.exists() && dirMaking.isDirectory())
                     continue;
-                dirCreationWorked = dirMaking.mkdir();
+                dirCreationWorked = dirMaking.mkdirs();
                 if (!dirCreationWorked) {
                     if (DEBUG) Log.i(TAG, "FAILED to create: " + dirMaking);
                     return false;

@@ -113,6 +113,15 @@ public class DownloadService extends Service implements ServiceCallbacks {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (DEBUG)  Log.d(TAG, this.getClass().getSimpleName() + " started");
+
+        // Android 12+ requires startForeground() to be called immediately when service is started
+        // via startForegroundService(). Call it first before any other initialization.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(Keys.NOTIFICATION_ID, buildNotificationWithChannel(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(Keys.NOTIFICATION_ID, buildNotificationWithChannel());
+        }
+
         /* stop checks */
         // if the service wasn't called with the correct action, stop!
         if (intent == null || !intent.getAction().equals(Keys.ACTION_STARTDOWNLOAD)) {
@@ -189,12 +198,6 @@ public class DownloadService extends Service implements ServiceCallbacks {
             downloader.start();
             // show basic start notification
             showNotification(Keys.NotificationStates.START, 0, null);
-            // more resources to handle service (forces notification with ongoing flag)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(Keys.NOTIFICATION_ID, buildNotificationWithChannel(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
-            } else {
-                startForeground(Keys.NOTIFICATION_ID, buildNotificationWithChannel());
-            }
         }
         // restart service until it is stopped
         return Service.START_STICKY;

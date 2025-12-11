@@ -22,6 +22,7 @@ package picframe.at.picframe.helper.alarm;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.util.Log;
 
 import java.util.GregorianCalendar;
@@ -51,7 +52,12 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         Intent startDownloadIntent = new Intent(context, DownloadService.class);
         startDownloadIntent.setAction(Keys.ACTION_STARTDOWNLOAD);
-        context.startService(startDownloadIntent);
+        // On Android O (API 26) and above, we must use startForegroundService for background starts
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(startDownloadIntent);
+        } else {
+            context.startService(startDownloadIntent);
+        }
 
         AppData.setLastAlarmTime(currentTime);
 

@@ -414,18 +414,38 @@ public class MainActivity extends ActionBarActivity {
 
             imgDisplay = (ImageView) viewLayout.findViewById(R.id.photocontainer);
 
-            if (AppData.getScaling()) {
-                imgDisplay.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            } else {
-                imgDisplay.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            }
             this.localpage = position;
+            android.graphics.Bitmap bitmap = null;
             if(!showExamplePictures){
-                imgDisplay.setImageBitmap(EXIF_helper.decodeFile(mFilePaths.get(this.localpage), mContext));
+                bitmap = EXIF_helper.decodeFile(mFilePaths.get(this.localpage), mContext);
+                imgDisplay.setImageBitmap(bitmap);
             } else {
                 String currentImage = "ex" + this.localpage;
                 int currentImageID = mContext.getResources().getIdentifier(currentImage, "drawable", mContext.getPackageName());
                 imgDisplay.setImageResource(currentImageID);
+            }
+
+            // Determine scale type based on orientation match
+            if (AppData.getScaling()) {
+                boolean shouldCrop = false;
+                if (bitmap != null) {
+                    // Get screen dimensions
+                    android.view.Display display = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+                    int screenWidth = display.getWidth();
+                    int screenHeight = display.getHeight();
+                    boolean screenIsLandscape = screenWidth > screenHeight;
+                    // Get image dimensions
+                    boolean imageIsLandscape = bitmap.getWidth() > bitmap.getHeight();
+                    // Only crop if orientations match
+                    shouldCrop = (screenIsLandscape == imageIsLandscape);
+                }
+                if (shouldCrop) {
+                    imgDisplay.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                } else {
+                    imgDisplay.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                }
+            } else {
+                imgDisplay.setScaleType(ImageView.ScaleType.FIT_CENTER);
             }
             imgDisplay.setOnTouchListener(new Gestures(getApplicationContext()) {
                 @Override

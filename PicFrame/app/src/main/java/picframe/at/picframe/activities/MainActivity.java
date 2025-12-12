@@ -27,8 +27,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
@@ -80,6 +83,7 @@ public class MainActivity extends ActionBarActivity {
 
     private final static boolean DEBUG = true;
     private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int REQUEST_MANAGE_EXTERNAL_STORAGE = 1001;
     private ResponseReceiver receiver;
     LocalBroadcastManager broadcastManager;
 
@@ -120,6 +124,9 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Check for MANAGE_EXTERNAL_STORAGE permission on Android 11+
+        checkStoragePermission();
 
         //mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
         mainLayout = (RelativeLayout) findViewById(R.id.mainLayout);
@@ -174,6 +181,52 @@ public class MainActivity extends ActionBarActivity {
         new AlarmScheduler().scheduleAlarm();
     }
 
+    private void checkStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                // Show dialog explaining why we need the permission
+                new AlertDialog.Builder(this)
+                    .setTitle("Storage Permission Required")
+                    .setMessage("PicFrame needs access to all files to sync and display your photos. Please grant 'All files access' permission in the next screen.")
+                    .setPositiveButton("Grant Permission", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            try {
+                                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                                intent.setData(Uri.parse("package:" + getPackageName()));
+                                startActivityForResult(intent, REQUEST_MANAGE_EXTERNAL_STORAGE);
+                            } catch (Exception e) {
+                                // Fallback if the specific intent doesn't work
+                                Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                                startActivityForResult(intent, REQUEST_MANAGE_EXTERNAL_STORAGE);
+                            }
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Toast.makeText(MainActivity.this, "Storage permission is required for syncing photos", Toast.LENGTH_LONG).show();
+                        }
+                    })
+                    .setCancelable(false)
+                    .show();
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_MANAGE_EXTERNAL_STORAGE) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                if (Environment.isExternalStorageManager()) {
+                    Toast.makeText(this, "Storage permission granted", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Storage permission denied. Syncing will not work.", Toast.LENGTH_LONG).show();
+                }
+            }
+        }
+    }
 
 
     // TODO: folderpicker for owncloud server folder                                ! L

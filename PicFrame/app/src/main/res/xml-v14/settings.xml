@@ -45,6 +45,50 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="@string/sett_key_cat_overlay"
+        android:title="@string/sett_cat_overlay">
+        <picframe.at.picframe.settings.MySwitchPref
+            android:title="@string/sett_overlay_enabled"
+            android:summary="@string/sett_overlay_enabledSumm"
+            android:summaryOff="@string/sett_overlay_enabledSummOff"
+            android:summaryOn="@string/sett_overlay_enabledSummOn"
+            android:defaultValue="false"
+            android:key="@string/sett_key_overlay_enabled" />
+        <ListPreference
+            android:title="@string/sett_overlay_format"
+            android:summary="@string/sett_overlay_formatSumm"
+            android:key="@string/sett_key_overlay_format"
+            android:dependency="OverlayEnabled"
+            android:defaultValue="2"
+            android:entries="@array/overlayFormatEntries"
+            android:entryValues="@array/overlayFormatValues" />
+        <ListPreference
+            android:title="@string/sett_overlay_position"
+            android:summary="@string/sett_overlay_positionSumm"
+            android:key="@string/sett_key_overlay_position"
+            android:dependency="OverlayEnabled"
+            android:defaultValue="5"
+            android:entries="@array/overlayPositionEntries"
+            android:entryValues="@array/overlayPositionValues" />
+        <ListPreference
+            android:title="@string/sett_overlay_size"
+            android:summary="@string/sett_overlay_sizeSumm"
+            android:key="@string/sett_key_overlay_size"
+            android:dependency="OverlayEnabled"
+            android:defaultValue="1"
+            android:entries="@array/overlaySizeEntries"
+            android:entryValues="@array/overlaySizeValues" />
+        <ListPreference
+            android:title="@string/sett_overlay_style"
+            android:summary="@string/sett_overlay_styleSumm"
+            android:key="@string/sett_key_overlay_style"
+            android:dependency="OverlayEnabled"
+            android:defaultValue="2"
+            android:entries="@array/overlayStyleEntries"
+            android:entryValues="@array/overlayStyleValues" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="@string/sett_key_cat2"
         android:title="@string/sett_cat2" >
         <ListPreference

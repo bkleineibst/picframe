@@ -93,6 +93,31 @@ public class AppData {
                 (Boolean) SettingsDefaults.getDefaultValueForKey(R.string.sett_key_scaling));
     }
 
+    // flag whether to show date/time overlay (on=true)
+    public static boolean getOverlayEnabled() {
+        return mPrefs.getBoolean(getAppContext().getString(R.string.sett_key_overlay_enabled), false);
+    }
+
+    // holds the format of the date/time overlay (0=year, 1=year+month, 2=full date, 3=date+time, 4=time only)
+    public static int getOverlayFormat() {
+        return Integer.parseInt(mPrefs.getString(getAppContext().getString(R.string.sett_key_overlay_format), "2"));
+    }
+
+    // holds the position of the overlay (0=top-left, 1=top-center, 2=top-right, 3=bottom-left, 4=bottom-center, 5=bottom-right)
+    public static int getOverlayPosition() {
+        return Integer.parseInt(mPrefs.getString(getAppContext().getString(R.string.sett_key_overlay_position), "5"));
+    }
+
+    // holds the size of the overlay text (0=small, 1=medium, 2=large, 3=extra large)
+    public static int getOverlaySize() {
+        return Integer.parseInt(mPrefs.getString(getAppContext().getString(R.string.sett_key_overlay_size), "1"));
+    }
+
+    // holds the style of the overlay text (0=white, 1=black, 2=white with black outline, 3=black with white outline)
+    public static int getOverlayStyle() {
+        return Integer.parseInt(mPrefs.getString(getAppContext().getString(R.string.sett_key_overlay_style), "2"));
+    }
+
     // holds the type of the selected source as int
     public static int getSrcTypeInt() {
         return Integer.parseInt(

@@ -6,7 +6,9 @@
         <item name="3">3 Sekunden</item>
         <item name="4">4 Sekunden</item>
         <item name="5">5 Sekunden</item>
+        <item name="10">10 Sekunden</item>
         <item name="15">15 Sekunden</item>
+        <item name="20">20 Sekunden</item>
         <item name="30">30 Sekunden</item>
         <item name="60">1 Minute</item>
         <item name="90">1,5 Minuten</item>
@@ -50,6 +52,41 @@
         <item name="9">Hineinzoomen</item>
         <item name="10">Herauszoomen</item>
         <item name="11">Zufällig</item>
+    </string-array>
+
+    <!-- Date/Time Overlay Format Options -->
+    <string-array name="overlayFormatEntries">
+        <item name="0">Nur Jahr</item>
+        <item name="1">Jahr und Monat</item>
+        <item name="2">Vollständiges Datum</item>
+        <item name="3">Datum und Uhrzeit</item>
+        <item name="4">Nur Uhrzeit</item>
+    </string-array>
+
+    <!-- Date/Time Overlay Position Options -->
+    <string-array name="overlayPositionEntries">
+        <item name="0">Oben links</item>
+        <item name="1">Oben Mitte</item>
+        <item name="2">Oben rechts</item>
+        <item name="3">Unten links</item>
+        <item name="4">Unten Mitte</item>
+        <item name="5">Unten rechts</item>
+    </string-array>
+
+    <!-- Date/Time Overlay Size Options -->
+    <string-array name="overlaySizeEntries">
+        <item name="0">Klein</item>
+        <item name="1">Mittel</item>
+        <item name="2">Groß</item>
+        <item name="3">Extra groß</item>
+    </string-array>
+
+    <!-- Date/Time Overlay Style Options -->
+    <string-array name="overlayStyleEntries">
+        <item name="0">Weiß</item>
+        <item name="1">Schwarz</item>
+        <item name="2">Weiß mit schwarzem Rand</item>
+        <item name="3">Schwarz mit weißem Rand</item>
     </string-array>
 
 

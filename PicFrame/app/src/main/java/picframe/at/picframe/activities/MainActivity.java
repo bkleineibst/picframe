@@ -53,6 +53,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -500,6 +501,16 @@ public class MainActivity extends ActionBarActivity {
             } else {
                 imgDisplay.setScaleType(ImageView.ScaleType.FIT_CENTER);
             }
+
+            // Configure date/time overlay
+            TextView dateTimeOverlay = (TextView) viewLayout.findViewById(R.id.dateTimeOverlay);
+            if (AppData.getOverlayEnabled()) {
+                dateTimeOverlay.setVisibility(View.VISIBLE);
+                configureDateTimeOverlay(dateTimeOverlay);
+            } else {
+                dateTimeOverlay.setVisibility(View.GONE);
+            }
+
             imgDisplay.setOnTouchListener(new Gestures(getApplicationContext()) {
                 @Override
                 public void onSwipeBottom() {
@@ -567,6 +578,122 @@ public class MainActivity extends ActionBarActivity {
         public int getPage(){
             return this.localpage;
         }
+    }
+
+    /**
+     * Configures the date/time overlay TextView based on user settings
+     */
+    private void configureDateTimeOverlay(TextView overlay) {
+        // Set the date/time text based on format
+        int format = AppData.getOverlayFormat();
+        java.text.SimpleDateFormat sdf;
+        switch (format) {
+            case 0: // Year only
+                sdf = new java.text.SimpleDateFormat("yyyy", java.util.Locale.getDefault());
+                break;
+            case 1: // Year and month
+                sdf = new java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault());
+                break;
+            case 2: // Full date
+                sdf = new java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale.getDefault());
+                break;
+            case 3: // Date and time
+                sdf = new java.text.SimpleDateFormat("dd MMMM yyyy  HH:mm", java.util.Locale.getDefault());
+                break;
+            case 4: // Time only
+                sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                break;
+            default:
+                sdf = new java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale.getDefault());
+                break;
+        }
+        overlay.setText(sdf.format(new java.util.Date()));
+
+        // Set text size based on size setting
+        int size = AppData.getOverlaySize();
+        float textSizeSp;
+        switch (size) {
+            case 0: // Small
+                textSizeSp = 14f;
+                break;
+            case 1: // Medium
+                textSizeSp = 18f;
+                break;
+            case 2: // Large
+                textSizeSp = 24f;
+                break;
+            case 3: // Extra large
+                textSizeSp = 32f;
+                break;
+            default:
+                textSizeSp = 18f;
+                break;
+        }
+        overlay.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, textSizeSp);
+
+        // Set text style (color and shadow)
+        int style = AppData.getOverlayStyle();
+        switch (style) {
+            case 0: // White
+                overlay.setTextColor(android.graphics.Color.WHITE);
+                overlay.setShadowLayer(0, 0, 0, android.graphics.Color.TRANSPARENT);
+                break;
+            case 1: // Black
+                overlay.setTextColor(android.graphics.Color.BLACK);
+                overlay.setShadowLayer(0, 0, 0, android.graphics.Color.TRANSPARENT);
+                break;
+            case 2: // White with black outline
+                overlay.setTextColor(android.graphics.Color.WHITE);
+                overlay.setShadowLayer(3, 1, 1, android.graphics.Color.BLACK);
+                break;
+            case 3: // Black with white outline
+                overlay.setTextColor(android.graphics.Color.BLACK);
+                overlay.setShadowLayer(3, 1, 1, android.graphics.Color.WHITE);
+                break;
+            default:
+                overlay.setTextColor(android.graphics.Color.WHITE);
+                overlay.setShadowLayer(3, 1, 1, android.graphics.Color.BLACK);
+                break;
+        }
+
+        // Set position
+        int position = AppData.getOverlayPosition();
+        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) overlay.getLayoutParams();
+        // Reset all alignment rules
+        params.addRule(RelativeLayout.ALIGN_PARENT_TOP, 0);
+        params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, 0);
+        params.addRule(RelativeLayout.ALIGN_PARENT_LEFT, 0);
+        params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, 0);
+        params.addRule(RelativeLayout.CENTER_HORIZONTAL, 0);
+
+        switch (position) {
+            case 0: // Top left
+                params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+                params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+                break;
+            case 1: // Top center
+                params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+                params.addRule(RelativeLayout.CENTER_HORIZONTAL);
+                break;
+            case 2: // Top right
+                params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+                params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+                break;
+            case 3: // Bottom left
+                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+                params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+                break;
+            case 4: // Bottom center
+                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+                params.addRule(RelativeLayout.CENTER_HORIZONTAL);
+                break;
+            case 5: // Bottom right
+            default:
+                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+                params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+                break;
+        }
+        overlay.setLayoutParams(params);
     }
 
     public void updateFileList() {

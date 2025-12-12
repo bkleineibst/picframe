@@ -65,6 +65,22 @@
     <string name="sett_dialog_changedURL_message">Sie haben Ihre OwnCloud URL verändert. \nWollen sie Ihre alten Bilder löschen bevor die neuen Bilder heruntergeladen werden?</string>
     <!-- Settings Toast Strings -->
     <string name="sett_toast_delFiles">Lösche Bilder!</string>
+
+    <!-- Date/Time Overlay Settings -->
+    <string name="sett_cat_overlay">Datum/Uhrzeit-Anzeige</string>
+    <string name="sett_overlay_enabled">Datum/Uhrzeit anzeigen</string>
+    <string name="sett_overlay_enabledSumm">Datum und/oder Uhrzeit auf Bildern anzeigen</string>
+    <string name="sett_overlay_enabledSummOff">Datum/Uhrzeit wird nicht angezeigt</string>
+    <string name="sett_overlay_enabledSummOn">Datum/Uhrzeit wird auf Bildern angezeigt</string>
+    <string name="sett_overlay_format">Datumsformat</string>
+    <string name="sett_overlay_formatSumm">Wählen Sie, welche Datum-/Uhrzeitinformationen angezeigt werden sollen</string>
+    <string name="sett_overlay_position">Position</string>
+    <string name="sett_overlay_positionSumm">Wählen Sie, wo Datum/Uhrzeit angezeigt werden soll</string>
+    <string name="sett_overlay_size">Textgröße</string>
+    <string name="sett_overlay_sizeSumm">Wählen Sie die Größe des Datum/Uhrzeit-Textes</string>
+    <string name="sett_overlay_style">Textstil</string>
+    <string name="sett_overlay_styleSumm">Wählen Sie den Stil des Datum/Uhrzeit-Textes</string>
+
     <!-- SETTINGS STRINGS END -->
 
     <!-- ABOUT STRINGS -->

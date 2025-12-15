@@ -2,6 +2,7 @@ package picframe.at.picframe.service.downloader;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.media.ExifInterface;
 import android.os.Handler;
 import android.util.Log;
 
@@ -358,6 +359,12 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
             }
             fOut.flush();
             fOut.close();
+            
+            // Copy EXIF GPS data from source to destination (only for JPEG)
+            if(parts[parts.length-1].toLowerCase().endsWith(".jpg") ||
+                    parts[parts.length-1].toLowerCase().endsWith(".jpeg")) {
+                copyExifGpsData(srcPath, newPath);
+            }
         } catch (NullPointerException npe) {
             if (DEBUG) Log.e(TAG, "Couldn't compress bitmap");
             //npe.printStackTrace();
@@ -372,6 +379,44 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
             return false;
         }
         return true;
+    }
+
+    /**
+     * Copies EXIF GPS and date/time data from source image to destination image.
+     * This preserves location and timestamp information after bitmap compression.
+     */
+    private void copyExifGpsData(String srcPath, String destPath) {
+        try {
+            ExifInterface srcExif = new ExifInterface(srcPath);
+            ExifInterface destExif = new ExifInterface(destPath);
+            
+            // Copy GPS-related tags
+            String[] gpsTagsToCopy = {
+                ExifInterface.TAG_GPS_LATITUDE,
+                ExifInterface.TAG_GPS_LATITUDE_REF,
+                ExifInterface.TAG_GPS_LONGITUDE,
+                ExifInterface.TAG_GPS_LONGITUDE_REF,
+                ExifInterface.TAG_GPS_ALTITUDE,
+                ExifInterface.TAG_GPS_ALTITUDE_REF,
+                ExifInterface.TAG_GPS_TIMESTAMP,
+                ExifInterface.TAG_GPS_DATESTAMP,
+                ExifInterface.TAG_DATETIME,
+                ExifInterface.TAG_DATETIME_ORIGINAL,
+                ExifInterface.TAG_DATETIME_DIGITIZED
+            };
+            
+            for (String tag : gpsTagsToCopy) {
+                String value = srcExif.getAttribute(tag);
+                if (value != null) {
+                    destExif.setAttribute(tag, value);
+                }
+            }
+            
+            destExif.saveAttributes();
+            if (DEBUG) Log.i(TAG, "Copied EXIF GPS data from " + srcPath + " to " + destPath);
+        } catch (IOException e) {
+            if (DEBUG) Log.e(TAG, "Failed to copy EXIF GPS data: " + e.getMessage());
+        }
     }
 
     @Override

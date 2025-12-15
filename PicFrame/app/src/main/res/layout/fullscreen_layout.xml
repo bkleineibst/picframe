@@ -20,4 +20,15 @@
         android:textSize="18sp"
         android:textColor="#FFFFFF" />
 
+    <TextView
+        android:id="@+id/locationOverlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_margin="16dp"
+        android:visibility="gone"
+        android:textSize="18sp"
+        android:textColor="#FFFFFF" />
+
 </RelativeLayout>

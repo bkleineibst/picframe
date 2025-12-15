@@ -113,8 +113,15 @@
     <string name="sett_no">No</string>
     <string name="sett_dialog_notConnected_message">The Last Login-Check was not successful; the download will not work.\nAre you sure you want to leave the ownCloud settings?</string>
 
+        <!-- Overlay Settings (shared) -->
+    <string name="sett_cat_overlay">Overlay Settings</string>
+    <string name="sett_overlay_size">Text Size</string>
+    <string name="sett_overlay_sizeSumm">Choose the size of overlay text</string>
+    <string name="sett_overlay_style">Text Style</string>
+    <string name="sett_overlay_styleSumm">Choose the style of overlay text</string>
+
         <!-- Date/Time Overlay Settings -->
-    <string name="sett_cat_overlay">Date/Time Overlay</string>
+    <string name="sett_cat_datetime_overlay">Date/Time Overlay</string>
     <string name="sett_overlay_enabled">Show Date/Time</string>
     <string name="sett_overlay_enabledSumm">Display date and/or time on pictures</string>
     <string name="sett_overlay_enabledSummOff">Date/time will not be shown</string>
@@ -123,10 +130,17 @@
     <string name="sett_overlay_formatSumm">Choose what date/time information to display</string>
     <string name="sett_overlay_position">Position</string>
     <string name="sett_overlay_positionSumm">Choose where to display the date/time</string>
-    <string name="sett_overlay_size">Text Size</string>
-    <string name="sett_overlay_sizeSumm">Choose the size of the date/time text</string>
-    <string name="sett_overlay_style">Text Style</string>
-    <string name="sett_overlay_styleSumm">Choose the style of the date/time text</string>
+
+        <!-- Location Overlay Settings -->
+    <string name="sett_cat_location_overlay">Location Overlay</string>
+    <string name="sett_location_enabled">Show Location</string>
+    <string name="sett_location_enabledSumm">Display photo location on pictures</string>
+    <string name="sett_location_enabledSummOff">Location will not be shown</string>
+    <string name="sett_location_enabledSummOn">Location will be shown on pictures</string>
+    <string name="sett_location_format">Location Format</string>
+    <string name="sett_location_formatSumm">Choose what location information to display</string>
+    <string name="sett_location_position">Position</string>
+    <string name="sett_location_positionSumm">Choose where to display the location</string>
 
         <!-- KEYS -->
     <string name="sett_key_cat1" translatable="false">sett_cat1</string>
@@ -152,11 +166,16 @@
     <string name="sett_key_restoreDefaults" translatable="false">restoreDefaults</string>
     <string name="sett_key_loginCheckButton" translatable="false">loginCheckButton</string>
     <string name="sett_key_cat_overlay" translatable="false">sett_cat_overlay</string>
+    <string name="sett_key_overlay_size" translatable="false">OverlaySize</string>
+    <string name="sett_key_overlay_style" translatable="false">OverlayStyle</string>
+    <string name="sett_key_cat_datetime_overlay" translatable="false">sett_cat_datetime_overlay</string>
     <string name="sett_key_overlay_enabled" translatable="false">OverlayEnabled</string>
     <string name="sett_key_overlay_format" translatable="false">OverlayFormat</string>
     <string name="sett_key_overlay_position" translatable="false">OverlayPosition</string>
-    <string name="sett_key_overlay_size" translatable="false">OverlaySize</string>
-    <string name="sett_key_overlay_style" translatable="false">OverlayStyle</string>
+    <string name="sett_key_cat_location_overlay" translatable="false">sett_cat_location_overlay</string>
+    <string name="sett_key_location_enabled" translatable="false">LocationEnabled</string>
+    <string name="sett_key_location_format" translatable="false">LocationFormat</string>
+    <string name="sett_key_location_position" translatable="false">LocationPosition</string>
     <!-- SETTINGS STRINGS END -->
 
     <!-- ABOUT STRINGS -->

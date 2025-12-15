@@ -502,13 +502,49 @@ public class MainActivity extends ActionBarActivity {
                 imgDisplay.setScaleType(ImageView.ScaleType.FIT_CENTER);
             }
 
-            // Configure date/time overlay
+            // Configure overlays - use combined overlay when both are at same position
             TextView dateTimeOverlay = (TextView) viewLayout.findViewById(R.id.dateTimeOverlay);
+            TextView locationOverlay = (TextView) viewLayout.findViewById(R.id.locationOverlay);
+            
+            // Get location if enabled
+            String location = null;
+            if (AppData.getLocationEnabled() && !showExamplePictures) {
+                int locationFormat = AppData.getLocationFormat();
+                location = EXIF_helper.getLocationFromImage(mFilePaths.get(this.localpage), locationFormat);
+                if (location != null && location.isEmpty()) location = null;
+            }
+            
+            // Get date/time string if enabled
+            String dateTimeText = null;
             if (AppData.getOverlayEnabled()) {
+                String filePath = showExamplePictures ? null : mFilePaths.get(this.localpage);
+                dateTimeText = getDateTimeString(filePath);
+            }
+            
+            // Check if both are at the same position
+            boolean samePosition = (AppData.getOverlayPosition() == AppData.getLocationPosition());
+            
+            if (samePosition && location != null && dateTimeText != null) {
+                // Combine into single overlay (location on top, date below)
+                String combinedText = location + "\n" + dateTimeText;
                 dateTimeOverlay.setVisibility(View.VISIBLE);
-                configureDateTimeOverlay(dateTimeOverlay);
+                locationOverlay.setVisibility(View.GONE);
+                configureCombinedOverlay(dateTimeOverlay, combinedText);
             } else {
-                dateTimeOverlay.setVisibility(View.GONE);
+                // Show separately
+                if (dateTimeText != null) {
+                    dateTimeOverlay.setVisibility(View.VISIBLE);
+                    configureDateTimeOverlay(dateTimeOverlay, dateTimeText);
+                } else {
+                    dateTimeOverlay.setVisibility(View.GONE);
+                }
+                
+                if (location != null) {
+                    locationOverlay.setVisibility(View.VISIBLE);
+                    configureLocationOverlay(locationOverlay, location);
+                } else {
+                    locationOverlay.setVisibility(View.GONE);
+                }
             }
 
             imgDisplay.setOnTouchListener(new Gestures(getApplicationContext()) {
@@ -581,72 +617,62 @@ public class MainActivity extends ActionBarActivity {
     }
 
     /**
-     * Configures the date/time overlay TextView based on user settings
+     * Gets the formatted date/time string for a photo
+     * @param filePath Path to the image file, or null for current date
+     * @return Formatted date/time string
      */
-    private void configureDateTimeOverlay(TextView overlay) {
-        // Set the date/time text based on format
+    private String getDateTimeString(String filePath) {
+        java.util.Date photoDate = null;
+        if (filePath != null) {
+            photoDate = EXIF_helper.getDateFromImage(filePath);
+        }
+        if (photoDate == null) {
+            photoDate = new java.util.Date();
+        }
+        
         int format = AppData.getOverlayFormat();
         java.text.SimpleDateFormat sdf;
         switch (format) {
-            case 0: // Year only
-                sdf = new java.text.SimpleDateFormat("yyyy", java.util.Locale.getDefault());
-                break;
-            case 1: // Year and month
-                sdf = new java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault());
-                break;
-            case 2: // Full date
-                sdf = new java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale.getDefault());
-                break;
-            case 3: // Date and time
-                sdf = new java.text.SimpleDateFormat("dd MMMM yyyy  HH:mm", java.util.Locale.getDefault());
-                break;
-            case 4: // Time only
-                sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
-                break;
-            default:
-                sdf = new java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale.getDefault());
-                break;
+            case 0: sdf = new java.text.SimpleDateFormat("yyyy", java.util.Locale.getDefault()); break;
+            case 1: sdf = new java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault()); break;
+            case 2: sdf = new java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale.getDefault()); break;
+            case 3: sdf = new java.text.SimpleDateFormat("dd MMMM yyyy  HH:mm", java.util.Locale.getDefault()); break;
+            case 4: sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()); break;
+            default: sdf = new java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale.getDefault()); break;
         }
-        overlay.setText(sdf.format(new java.util.Date()));
+        return sdf.format(photoDate);
+    }
 
-        // Set text size based on size setting
+    /**
+     * Applies common overlay styling (size, color, shadow)
+     */
+    private void applyOverlayStyle(TextView overlay) {
         int size = AppData.getOverlaySize();
         float textSizeSp;
         switch (size) {
-            case 0: // Small
-                textSizeSp = 14f;
-                break;
-            case 1: // Medium
-                textSizeSp = 18f;
-                break;
-            case 2: // Large
-                textSizeSp = 24f;
-                break;
-            case 3: // Extra large
-                textSizeSp = 32f;
-                break;
-            default:
-                textSizeSp = 18f;
-                break;
+            case 0: textSizeSp = 14f; break;
+            case 1: textSizeSp = 18f; break;
+            case 2: textSizeSp = 24f; break;
+            case 3: textSizeSp = 32f; break;
+            default: textSizeSp = 18f; break;
         }
         overlay.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, textSizeSp);
 
-        // Set text style (color and shadow)
         int style = AppData.getOverlayStyle();
         switch (style) {
-            case 0: // White
+            case 0:
                 overlay.setTextColor(android.graphics.Color.WHITE);
                 overlay.setShadowLayer(0, 0, 0, android.graphics.Color.TRANSPARENT);
                 break;
-            case 1: // Black
+            case 1:
                 overlay.setTextColor(android.graphics.Color.BLACK);
                 overlay.setShadowLayer(0, 0, 0, android.graphics.Color.TRANSPARENT);
                 break;
-            case 2: // White with black outline
+            case 2:
                 overlay.setTextColor(android.graphics.Color.WHITE);
                 overlay.setShadowLayer(3, 1, 1, android.graphics.Color.BLACK);
                 break;
-            case 3: // Black with white outline
+            case 3:
                 overlay.setTextColor(android.graphics.Color.BLACK);
                 overlay.setShadowLayer(3, 1, 1, android.graphics.Color.WHITE);
                 break;
@@ -655,45 +681,61 @@ public class MainActivity extends ActionBarActivity {
                 overlay.setShadowLayer(3, 1, 1, android.graphics.Color.BLACK);
                 break;
         }
+    }
 
-        // Set position
-        int position = AppData.getOverlayPosition();
+    /**
+     * Applies position to an overlay
+     */
+    private void applyOverlayPosition(TextView overlay, int position) {
         RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) overlay.getLayoutParams();
-        // Reset all alignment rules
         params.addRule(RelativeLayout.ALIGN_PARENT_TOP, 0);
         params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, 0);
         params.addRule(RelativeLayout.ALIGN_PARENT_LEFT, 0);
         params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, 0);
         params.addRule(RelativeLayout.CENTER_HORIZONTAL, 0);
+        params.addRule(RelativeLayout.BELOW, 0);
+        params.addRule(RelativeLayout.ABOVE, 0);
+
+        float density = overlay.getContext().getResources().getDisplayMetrics().density;
+        int marginPx = (int) (16 * density);
+        params.setMargins(marginPx, marginPx, marginPx, marginPx);
 
         switch (position) {
-            case 0: // Top left
-                params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-                params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-                break;
-            case 1: // Top center
-                params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-                params.addRule(RelativeLayout.CENTER_HORIZONTAL);
-                break;
-            case 2: // Top right
-                params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-                params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-                break;
-            case 3: // Bottom left
-                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-                params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-                break;
-            case 4: // Bottom center
-                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-                params.addRule(RelativeLayout.CENTER_HORIZONTAL);
-                break;
-            case 5: // Bottom right
-            default:
-                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-                params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-                break;
+            case 0: params.addRule(RelativeLayout.ALIGN_PARENT_TOP); params.addRule(RelativeLayout.ALIGN_PARENT_LEFT); break;
+            case 1: params.addRule(RelativeLayout.ALIGN_PARENT_TOP); params.addRule(RelativeLayout.CENTER_HORIZONTAL); break;
+            case 2: params.addRule(RelativeLayout.ALIGN_PARENT_TOP); params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT); break;
+            case 3: params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM); params.addRule(RelativeLayout.ALIGN_PARENT_LEFT); break;
+            case 4: params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM); params.addRule(RelativeLayout.CENTER_HORIZONTAL); break;
+            case 5: default: params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM); params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT); break;
         }
         overlay.setLayoutParams(params);
+    }
+
+    /**
+     * Configures a combined overlay with both location and date/time
+     */
+    private void configureCombinedOverlay(TextView overlay, String text) {
+        overlay.setText(text);
+        applyOverlayStyle(overlay);
+        applyOverlayPosition(overlay, AppData.getOverlayPosition());
+    }
+
+    /**
+     * Configures the date/time overlay (standalone)
+     */
+    private void configureDateTimeOverlay(TextView overlay, String dateTimeText) {
+        overlay.setText(dateTimeText);
+        applyOverlayStyle(overlay);
+        applyOverlayPosition(overlay, AppData.getOverlayPosition());
+    }
+
+    /**
+     * Configures the location overlay (standalone)
+     */
+    private void configureLocationOverlay(TextView overlay, String location) {
+        overlay.setText(location);
+        applyOverlayStyle(overlay);
+        applyOverlayPosition(overlay, AppData.getLocationPosition());
     }
 
     public void updateFileList() {

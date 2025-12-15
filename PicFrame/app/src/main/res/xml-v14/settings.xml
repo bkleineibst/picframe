@@ -47,6 +47,25 @@
     <PreferenceCategory
         android:key="@string/sett_key_cat_overlay"
         android:title="@string/sett_cat_overlay">
+        <ListPreference
+            android:title="@string/sett_overlay_size"
+            android:summary="@string/sett_overlay_sizeSumm"
+            android:key="@string/sett_key_overlay_size"
+            android:defaultValue="1"
+            android:entries="@array/overlaySizeEntries"
+            android:entryValues="@array/overlaySizeValues" />
+        <ListPreference
+            android:title="@string/sett_overlay_style"
+            android:summary="@string/sett_overlay_styleSumm"
+            android:key="@string/sett_key_overlay_style"
+            android:defaultValue="2"
+            android:entries="@array/overlayStyleEntries"
+            android:entryValues="@array/overlayStyleValues" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="@string/sett_key_cat_datetime_overlay"
+        android:title="@string/sett_cat_datetime_overlay">
         <picframe.at.picframe.settings.MySwitchPref
             android:title="@string/sett_overlay_enabled"
             android:summary="@string/sett_overlay_enabledSumm"
@@ -70,22 +89,34 @@
             android:defaultValue="5"
             android:entries="@array/overlayPositionEntries"
             android:entryValues="@array/overlayPositionValues" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="@string/sett_key_cat_location_overlay"
+        android:title="@string/sett_cat_location_overlay">
+        <picframe.at.picframe.settings.MySwitchPref
+            android:title="@string/sett_location_enabled"
+            android:summary="@string/sett_location_enabledSumm"
+            android:summaryOff="@string/sett_location_enabledSummOff"
+            android:summaryOn="@string/sett_location_enabledSummOn"
+            android:defaultValue="false"
+            android:key="@string/sett_key_location_enabled" />
         <ListPreference
-            android:title="@string/sett_overlay_size"
-            android:summary="@string/sett_overlay_sizeSumm"
-            android:key="@string/sett_key_overlay_size"
-            android:dependency="OverlayEnabled"
-            android:defaultValue="1"
-            android:entries="@array/overlaySizeEntries"
-            android:entryValues="@array/overlaySizeValues" />
+            android:title="@string/sett_location_format"
+            android:summary="@string/sett_location_formatSumm"
+            android:key="@string/sett_key_location_format"
+            android:dependency="LocationEnabled"
+            android:defaultValue="0"
+            android:entries="@array/locationFormatEntries"
+            android:entryValues="@array/locationFormatValues" />
         <ListPreference
-            android:title="@string/sett_overlay_style"
-            android:summary="@string/sett_overlay_styleSumm"
-            android:key="@string/sett_key_overlay_style"
-            android:dependency="OverlayEnabled"
-            android:defaultValue="2"
-            android:entries="@array/overlayStyleEntries"
-            android:entryValues="@array/overlayStyleValues" />
+            android:title="@string/sett_location_position"
+            android:summary="@string/sett_location_positionSumm"
+            android:key="@string/sett_key_location_position"
+            android:dependency="LocationEnabled"
+            android:defaultValue="3"
+            android:entries="@array/overlayPositionEntries"
+            android:entryValues="@array/overlayPositionValues" />
     </PreferenceCategory>
 
     <PreferenceCategory

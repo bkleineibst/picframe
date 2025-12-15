@@ -118,6 +118,21 @@ public class AppData {
         return Integer.parseInt(mPrefs.getString(getAppContext().getString(R.string.sett_key_overlay_style), "2"));
     }
 
+    // flag whether to show location overlay (on=true)
+    public static boolean getLocationEnabled() {
+        return mPrefs.getBoolean(getAppContext().getString(R.string.sett_key_location_enabled), false);
+    }
+
+    // holds the format of the location overlay (0=city and country, 1=city only)
+    public static int getLocationFormat() {
+        return Integer.parseInt(mPrefs.getString(getAppContext().getString(R.string.sett_key_location_format), "0"));
+    }
+
+    // holds the position of the location overlay (0=top-left, 1=top-center, 2=top-right, 3=bottom-left, 4=bottom-center, 5=bottom-right)
+    public static int getLocationPosition() {
+        return Integer.parseInt(mPrefs.getString(getAppContext().getString(R.string.sett_key_location_position), "3"));
+    }
+
     // holds the type of the selected source as int
     public static int getSrcTypeInt() {
         return Integer.parseInt(

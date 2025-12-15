@@ -89,5 +89,10 @@
         <item name="3">Schwarz mit weißem Rand</item>
     </string-array>
 
+    <!-- Location Format Options -->
+    <string-array name="locationFormatEntries">
+        <item name="0">Stadt und Land</item>
+        <item name="1">Nur Stadt</item>
+    </string-array>
 
 </resources>

@@ -66,8 +66,15 @@
     <!-- Settings Toast Strings -->
     <string name="sett_toast_delFiles">Lösche Bilder!</string>
 
+    <!-- Overlay Settings (shared) -->
+    <string name="sett_cat_overlay">Overlay-Einstellungen</string>
+    <string name="sett_overlay_size">Textgröße</string>
+    <string name="sett_overlay_sizeSumm">Wählen Sie die Größe des Overlay-Textes</string>
+    <string name="sett_overlay_style">Textstil</string>
+    <string name="sett_overlay_styleSumm">Wählen Sie den Stil des Overlay-Textes</string>
+
     <!-- Date/Time Overlay Settings -->
-    <string name="sett_cat_overlay">Datum/Uhrzeit-Anzeige</string>
+    <string name="sett_cat_datetime_overlay">Datum/Uhrzeit-Anzeige</string>
     <string name="sett_overlay_enabled">Datum/Uhrzeit anzeigen</string>
     <string name="sett_overlay_enabledSumm">Datum und/oder Uhrzeit auf Bildern anzeigen</string>
     <string name="sett_overlay_enabledSummOff">Datum/Uhrzeit wird nicht angezeigt</string>
@@ -76,10 +83,17 @@
     <string name="sett_overlay_formatSumm">Wählen Sie, welche Datum-/Uhrzeitinformationen angezeigt werden sollen</string>
     <string name="sett_overlay_position">Position</string>
     <string name="sett_overlay_positionSumm">Wählen Sie, wo Datum/Uhrzeit angezeigt werden soll</string>
-    <string name="sett_overlay_size">Textgröße</string>
-    <string name="sett_overlay_sizeSumm">Wählen Sie die Größe des Datum/Uhrzeit-Textes</string>
-    <string name="sett_overlay_style">Textstil</string>
-    <string name="sett_overlay_styleSumm">Wählen Sie den Stil des Datum/Uhrzeit-Textes</string>
+
+    <!-- Location Overlay Settings -->
+    <string name="sett_cat_location_overlay">Standort-Anzeige</string>
+    <string name="sett_location_enabled">Standort anzeigen</string>
+    <string name="sett_location_enabledSumm">Aufnahmeort auf Bildern anzeigen</string>
+    <string name="sett_location_enabledSummOff">Standort wird nicht angezeigt</string>
+    <string name="sett_location_enabledSummOn">Standort wird auf Bildern angezeigt</string>
+    <string name="sett_location_format">Standort-Format</string>
+    <string name="sett_location_formatSumm">Wählen Sie, welche Standortinformationen angezeigt werden sollen</string>
+    <string name="sett_location_position">Position</string>
+    <string name="sett_location_positionSumm">Wählen Sie, wo der Standort angezeigt werden soll</string>
 
     <!-- SETTINGS STRINGS END -->
 

@@ -168,4 +168,14 @@
         <item name="3">3</item>
     </string-array>
 
+    <!-- Location Format Options -->
+    <string-array name="locationFormatEntries">
+        <item name="0">City and country</item>
+        <item name="1">City only</item>
+    </string-array>
+    <string-array translatable="false" name="locationFormatValues">
+        <item name="0">0</item>
+        <item name="1">1</item>
+    </string-array>
+
 </resources>

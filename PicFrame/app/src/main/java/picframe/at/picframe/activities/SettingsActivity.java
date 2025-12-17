@@ -198,6 +198,29 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
         if (sharedPreferences != null && key != null) {
             debug("CHANGED| Key:" + key + " ++ Value: " + sharedPreferences.getAll().get(key));
         }
+        
+        // Handle kiosk mode validation
+        if (getString(R.string.sett_key_kiosk_enabled).equals(key)) {
+            boolean kioskEnabled = sharedPreferences.getBoolean(key, false);
+            if (kioskEnabled) {
+                String password = AppData.getKioskPassword();
+                if (password == null || password.isEmpty()) {
+                    // Password not set, disable kiosk mode and show warning
+                    AppData.setKioskEnabled(false);
+                    Toast.makeText(this, R.string.kiosk_password_not_set, Toast.LENGTH_LONG).show();
+                    // Update the preference UI
+                    Preference kioskPref = findPreference(key);
+                    if (kioskPref != null) {
+                        if (kioskPref instanceof CheckBoxPreference) {
+                            ((CheckBoxPreference) kioskPref).setChecked(false);
+                        } else if (kioskPref instanceof MySwitchPref) {
+                            ((MySwitchPref) kioskPref).setChecked(false);
+                        }
+                    }
+                }
+            }
+        }
+        
         if (editableTitleFields.contains(key)) {
             //update display/transition title
             updateFieldTitle(key);

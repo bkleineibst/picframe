@@ -133,6 +133,21 @@ public class AppData {
         return Integer.parseInt(mPrefs.getString(getAppContext().getString(R.string.sett_key_location_position), "3"));
     }
 
+    // flag whether kiosk mode is enabled (on=true)
+    public static boolean getKioskEnabled() {
+        return mPrefs.getBoolean(getAppContext().getString(R.string.sett_key_kiosk_enabled), false);
+    }
+
+    // holds the kiosk mode password
+    public static String getKioskPassword() {
+        return mPrefs.getString(getAppContext().getString(R.string.sett_key_kiosk_password), "");
+    }
+
+    // sets the kiosk mode enabled state
+    public static void setKioskEnabled(boolean enabled) {
+        mPrefs.edit().putBoolean(getAppContext().getString(R.string.sett_key_kiosk_enabled), enabled).apply();
+    }
+
     // holds the type of the selected source as int
     public static int getSrcTypeInt() {
         return Integer.parseInt(

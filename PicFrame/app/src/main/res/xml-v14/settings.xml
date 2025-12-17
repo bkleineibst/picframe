@@ -120,6 +120,24 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="@string/sett_key_cat_kiosk"
+        android:title="@string/sett_cat_kiosk">
+        <picframe.at.picframe.settings.MySwitchPref
+            android:title="@string/sett_kiosk_enabled"
+            android:summary="@string/sett_kiosk_enabledSumm"
+            android:summaryOff="@string/sett_kiosk_enabledSummOff"
+            android:summaryOn="@string/sett_kiosk_enabledSummOn"
+            android:defaultValue="false"
+            android:key="@string/sett_key_kiosk_enabled" />
+        <EditTextPreference
+            android:title="@string/sett_kiosk_password"
+            android:summary="@string/sett_kiosk_passwordSumm"
+            android:key="@string/sett_key_kiosk_password"
+            android:inputType="textPassword"
+            android:defaultValue="" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="@string/sett_key_cat2"
         android:title="@string/sett_cat2" >
         <ListPreference

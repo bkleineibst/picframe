@@ -95,10 +95,24 @@
     <string name="sett_location_position">Position</string>
     <string name="sett_location_positionSumm">Wählen Sie, wo der Standort angezeigt werden soll</string>
 
+    <!-- Kiosk Mode Settings -->
+    <string name="sett_cat_kiosk">Kiosk-Modus</string>
+    <string name="sett_kiosk_enabled">Kiosk-Modus aktivieren</string>
+    <string name="sett_kiosk_enabledSumm">Diashow sperren und Passwort zum Beenden erfordern</string>
+    <string name="sett_kiosk_enabledSummOff">Kiosk-Modus ist deaktiviert</string>
+    <string name="sett_kiosk_enabledSummOn">Passwort erforderlich für Einstellungen oder Beenden</string>
+    <string name="sett_kiosk_password">Kiosk-Passwort</string>
+    <string name="sett_kiosk_passwordSumm">Passwort für den Kiosk-Modus festlegen</string>
+    <string name="kiosk_dialog_title">Passwort eingeben</string>
+    <string name="kiosk_dialog_message">Kiosk-Modus ist aktiviert. Geben Sie das Passwort ein, um fortzufahren.</string>
+    <string name="kiosk_dialog_wrong_password">Falsches Passwort</string>
+    <string name="kiosk_password_not_set">Bitte zuerst ein Kiosk-Passwort festlegen</string>
+
     <!-- SETTINGS STRINGS END -->
 
     <!-- ABOUT STRINGS -->
     <string name="action_about">Über uns</string>
+    <string name="action_exit">Beenden</string>
     <string name="title_activity_about">Über uns</string>
     <string name="about_license_button">Lizenzen</string>
     <!-- ABOUT STRINGS END -->

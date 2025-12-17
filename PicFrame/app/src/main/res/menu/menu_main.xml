@@ -21,5 +21,12 @@
         android:title="@string/action_about"
         android:orderInCategory="200"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_exit_kiosk"
+        android:icon="@android:drawable/ic_menu_close_clear_cancel"
+        android:title="@string/action_exit"
+        android:orderInCategory="300"
+        android:visible="false"
+        app:showAsAction="ifRoom" />
 
 </menu>

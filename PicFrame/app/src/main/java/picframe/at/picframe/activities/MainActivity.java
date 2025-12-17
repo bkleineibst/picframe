@@ -55,6 +55,9 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.EditText;
+import android.text.InputType;
+import android.app.ActivityManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -120,6 +123,13 @@ public class MainActivity extends ActionBarActivity {
 
     //public static boolean mConnCheckOC, mConnCheckSMB; //TODO still needed?
     public boolean mDoubleBackToExitPressedOnce;
+    
+    // Kiosk mode: tracks if user has authenticated to exit
+    private boolean kioskExitAuthorized = false;
+    // Kiosk mode: Handler for automatic re-pinning
+    private Handler kioskRepinHandler;
+    private Runnable kioskRepinRunnable;
+    private static final long KIOSK_REPIN_DELAY = 10000; // Re-pin after 10 seconds
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -284,6 +294,12 @@ public class MainActivity extends ActionBarActivity {
         if(AppData.getSlideshow() && !paused){
             startSlideshowCountDown();
         }
+        
+        // Start screen pinning if kiosk mode is enabled
+        if (AppData.getKioskEnabled()) {
+            startKioskLockTask();
+            scheduleKioskRepin();
+        }
     }
 
     @Override
@@ -295,6 +311,12 @@ public class MainActivity extends ActionBarActivity {
             menu.findItem(R.id.action_download).setVisible(true);
         } else {
             menu.findItem(R.id.action_download).setVisible(false);
+        }
+        
+        // Show exit option only when kiosk mode is enabled
+        MenuItem exitItem = menu.findItem(R.id.action_exit_kiosk);
+        if (exitItem != null) {
+            exitItem.setVisible(AppData.getKioskEnabled());
         }
         return true;
     }
@@ -308,11 +330,20 @@ public class MainActivity extends ActionBarActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Intent myIntent;
         switch (item.getItemId()) {
             case R.id.action_settings:
-                myIntent = new Intent(this, SettingsActivity.class);
-                break;
+                // If kiosk mode is enabled, require password
+                if (AppData.getKioskEnabled()) {
+                    showKioskPasswordDialog(new Runnable() {
+                        @Override
+                        public void run() {
+                            startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+                        }
+                    });
+                } else {
+                    startActivity(new Intent(this, SettingsActivity.class));
+                }
+                return true;
             case R.id.action_download:
                 debug("dowdnload now clicked");
                 Intent startDownloadIntent = new Intent(mContext, DownloadService.class);
@@ -324,18 +355,76 @@ public class MainActivity extends ActionBarActivity {
                 }
                 return true;
             case R.id.action_about:
-                myIntent = new Intent(this, StatusActivity.class);
-                break;
+                // If kiosk mode is enabled, require password for about screen too
+                if (AppData.getKioskEnabled()) {
+                    showKioskPasswordDialog(new Runnable() {
+                        @Override
+                        public void run() {
+                            startActivity(new Intent(MainActivity.this, StatusActivity.class));
+                        }
+                    });
+                } else {
+                    startActivity(new Intent(this, StatusActivity.class));
+                }
+                return true;
+            case R.id.action_exit_kiosk:
+                // Require password to exit/unpin kiosk mode
+                showKioskPasswordDialog(new Runnable() {
+                    @Override
+                    public void run() {
+                        kioskExitAuthorized = true;
+                        cancelKioskRepin();
+                        stopKioskLockTask();
+                        finish();
+                    }
+                });
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
-        startActivity(myIntent);
-        return true;
+    }
+    
+    /**
+     * Shows a password dialog for kiosk mode. If the password is correct, runs the provided action.
+     * @param onSuccess The action to run if the password is correct
+     */
+    private void showKioskPasswordDialog(final Runnable onSuccess) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.kiosk_dialog_title);
+        builder.setMessage(R.string.kiosk_dialog_message);
+        
+        // Set up the input
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        builder.setView(input);
+        
+        // Set up the buttons
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String enteredPassword = input.getText().toString();
+                String correctPassword = AppData.getKioskPassword();
+                if (enteredPassword.equals(correctPassword)) {
+                    onSuccess.run();
+                } else {
+                    Toast.makeText(MainActivity.this, R.string.kiosk_dialog_wrong_password, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        
+        builder.show();
     }
 
     protected void onPause() {
         super.onPause();
         cancelSlideShowCoundown();
+        cancelKioskRepin();
         mOldPath = AppData.getImagePath();
         mOldRecursive = AppData.getRecursiveSearch();
 
@@ -353,7 +442,21 @@ public class MainActivity extends ActionBarActivity {
 
     public void onBackPressed() {
         if (mDoubleBackToExitPressedOnce) {
-            super.onBackPressed();
+            // If kiosk mode is enabled, show password dialog instead of exiting
+            if (AppData.getKioskEnabled()) {
+                mDoubleBackToExitPressedOnce = false;
+                showKioskPasswordDialog(new Runnable() {
+                    @Override
+                    public void run() {
+                        kioskExitAuthorized = true;
+                        cancelKioskRepin();
+                        stopKioskLockTask();
+                        MainActivity.super.onBackPressed();
+                    }
+                });
+            } else {
+                super.onBackPressed();
+            }
         } else {
             this.mDoubleBackToExitPressedOnce = true;
             Toast.makeText(this, R.string.main_toast_exitmsg, Toast.LENGTH_SHORT).show();
@@ -363,6 +466,94 @@ public class MainActivity extends ActionBarActivity {
                     mDoubleBackToExitPressedOnce = false;
                 }
             }, 2000);
+        }
+    }
+    
+    /**
+     * Called when the user attempts to leave the app (home button, recent apps, etc.)
+     */
+    @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        // If kiosk mode is enabled, start screen pinning
+        if (AppData.getKioskEnabled()) {
+            startKioskLockTask();
+        }
+    }
+    
+    /**
+     * Starts screen pinning (lock task) mode for kiosk functionality.
+     * This prevents the user from leaving the app via home button, recent apps, etc.
+     */
+    private void startKioskLockTask() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null && !am.isInLockTaskMode()) {
+                try {
+                    startLockTask();
+                } catch (Exception e) {
+                    // Lock task may fail if not enabled by device owner
+                    // Fall back to bringing app back to foreground
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            Intent intent = new Intent(MainActivity.this, MainActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                            startActivity(intent);
+                        }
+                    }, 50);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Stops screen pinning (lock task) mode.
+     */
+    private void stopKioskLockTask() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null && am.isInLockTaskMode()) {
+                try {
+                    stopLockTask();
+                } catch (Exception e) {
+                    // Ignore
+                }
+            }
+        }
+    }
+    
+    /**
+     * Schedules automatic re-pinning after KIOSK_REPIN_DELAY milliseconds.
+     * This ensures the app re-pins if the user unpins via gesture.
+     */
+    private void scheduleKioskRepin() {
+        if (kioskRepinHandler == null) {
+            kioskRepinHandler = new Handler();
+        }
+        if (kioskRepinRunnable == null) {
+            kioskRepinRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (AppData.getKioskEnabled() && !kioskExitAuthorized) {
+                        startKioskLockTask();
+                        // Schedule the next check
+                        kioskRepinHandler.postDelayed(this, KIOSK_REPIN_DELAY);
+                    }
+                }
+            };
+        }
+        // Remove any pending callbacks and schedule fresh
+        kioskRepinHandler.removeCallbacks(kioskRepinRunnable);
+        kioskRepinHandler.postDelayed(kioskRepinRunnable, KIOSK_REPIN_DELAY);
+    }
+    
+    /**
+     * Cancels the scheduled kiosk re-pin.
+     */
+    private void cancelKioskRepin() {
+        if (kioskRepinHandler != null && kioskRepinRunnable != null) {
+            kioskRepinHandler.removeCallbacks(kioskRepinRunnable);
         }
     }
 

@@ -810,15 +810,16 @@ public class MainActivity extends ActionBarActivity {
     /**
      * Gets the formatted date/time string for a photo
      * @param filePath Path to the image file, or null for current date
-     * @return Formatted date/time string
+     * @return Formatted date/time string, or null if date couldn't be extracted from photo
      */
     private String getDateTimeString(String filePath) {
         java.util.Date photoDate = null;
         if (filePath != null) {
             photoDate = EXIF_helper.getDateFromImage(filePath);
         }
+        // If we couldn't get the date from the photo, don't show anything
         if (photoDate == null) {
-            photoDate = new java.util.Date();
+            return null;
         }
         
         int format = AppData.getOverlayFormat();

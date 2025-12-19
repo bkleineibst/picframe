@@ -77,6 +77,7 @@ import picframe.at.picframe.helper.viewpager.FlipVerticalTransformer;
 import picframe.at.picframe.helper.viewpager.ForegroundToBackgroundTransformer;
 import picframe.at.picframe.helper.viewpager.Gestures;
 import picframe.at.picframe.helper.viewpager.RotateDownTransformer;
+import picframe.at.picframe.helper.viewpager.SlideshowHistory;
 import picframe.at.picframe.helper.viewpager.StackTransformer;
 import picframe.at.picframe.helper.viewpager.ZoomInTransformer;
 import picframe.at.picframe.helper.viewpager.ZoomOutPageTransformer;
@@ -130,6 +131,11 @@ public class MainActivity extends ActionBarActivity {
     private Handler kioskRepinHandler;
     private Runnable kioskRepinRunnable;
     private static final long KIOSK_REPIN_DELAY = 10000; // Re-pin after 10 seconds
+    
+    // Slideshow history for random mode navigation
+    private SlideshowHistory slideshowHistory;
+    private int lastRecordedPage = -1;
+    private boolean navigatingFromHistory = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,9 +170,16 @@ public class MainActivity extends ActionBarActivity {
         mOldPath = AppData.getImagePath();
         mOldRecursive = AppData.getRecursiveSearch();
 
+        // Initialize slideshow history for random mode
+        slideshowHistory = new SlideshowHistory();
+        
         pager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            private int previousPage = -1;
+            private int scrollState = ViewPager.SCROLL_STATE_IDLE;
+            
             @Override
             public void onPageScrollStateChanged(int state) {
+                scrollState = state;
             }
 
             @Override
@@ -176,6 +189,30 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onPageSelected(int position) {
                 selectTransformer();
+                
+                // Track history for random mode navigation
+                if (AppData.getRandomize() && !navigatingFromHistory) {
+                    // Record this page in history if it's a new visit
+                    if (position != lastRecordedPage) {
+                        slideshowHistory.recordPageVisit(position);
+                        lastRecordedPage = position;
+                    }
+                }
+                navigatingFromHistory = false;
+                
+                // Detect manual swipe back (user swiped right/backward)
+                if (previousPage != -1 && position < previousPage && AppData.getRandomize() && paused) {
+                    // User swiped back while paused in random mode - try to go to history
+                    if (slideshowHistory.canGoBack()) {
+                        int historyPage = slideshowHistory.goBack();
+                        if (historyPage != -1 && historyPage != position) {
+                            navigatingFromHistory = true;
+                            lastRecordedPage = historyPage;
+                            pager.setCurrentItem(historyPage, false);
+                        }
+                    }
+                }
+                previousPage = position;
             }
         });
 
@@ -287,6 +324,13 @@ public class MainActivity extends ActionBarActivity {
         // start on the page we left in onPause, unless it was the first or last picture (as this freezes the slideshow
         if(currentPage < pager.getAdapter().getCount() -1 && currentPage > 0) {
             pager.setCurrentItem(currentPage);
+        }
+        
+        // Record initial page in history for random mode
+        if (AppData.getRandomize() && slideshowHistory != null && slideshowHistory.isEmpty()) {
+            int initialPage = pager.getCurrentItem();
+            slideshowHistory.recordPageVisit(initialPage);
+            lastRecordedPage = initialPage;
         }
 
         setUpSlideShow();
@@ -943,6 +987,12 @@ public class MainActivity extends ActionBarActivity {
         }
         setSize(); // size is count of images in folder, or constant if example pictures are used
         imagePagerAdapter.notifyDataSetChanged();
+        
+        // Clear history when file list changes (new shuffle order)
+        if (slideshowHistory != null) {
+            slideshowHistory.clear();
+            lastRecordedPage = -1;
+        }
     }
 
 

@@ -184,6 +184,12 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
         File mExtFolderCacheObject = new File(mExtFolderDisplayPath);
         File[] mLocalFilesInDisplayFolder = mExtFolderCacheObject.listFiles();
 
+        // Build a set of remote file paths for efficient lookup
+        ArrayList<String> mRemoteFilePaths = new ArrayList<>();
+        for (RemoteFile remoteFile : mRemoteFileList) {
+            mRemoteFilePaths.add(remoteFile.getRemotePath());
+        }
+
         if (mLocalFilesInDisplayFolder == null || mLocalFilesInDisplayFolder.length == 0) {
             if (DEBUG) Log.i(TAG, "Display folder is empty, all remote files are to be downloaded.");
             for(RemoteFile remoteFile : mRemoteFileList){
@@ -203,6 +209,9 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
                     mRemoteFilesToDownloadList.add(remoteFile);
                 }
             }
+            
+            // Delete local files that no longer exist on the server
+            deleteOrphanedLocalFiles(mRemoteFilePaths);
         }
         if (mRemoteFilesToDownloadList.size() == 0) {
             if (DEBUG) Log.i(TAG, "No file needs to be downloaded!");
@@ -217,6 +226,78 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
             if (DEBUG) Log.i(TAG, "Starting download of missing files (" + mRemoteFilesToDownloadList.size() + ") shortly");
             return true;
         }
+    }
+
+    /**
+     * Deletes local files that no longer exist on the remote server.
+     * This ensures that when photos are deleted on the server, they are also
+     * removed from the local cache during the next sync.
+     *
+     * @param remoteFilePaths List of file paths that exist on the remote server
+     */
+    private void deleteOrphanedLocalFiles(ArrayList<String> remoteFilePaths) {
+        int deletedCount = 0;
+        for (String localFilePath : mLocalFileList) {
+            if (!remoteFilePaths.contains(localFilePath)) {
+                // This local file doesn't exist on the server anymore - delete it
+                File fileToDelete = new File(mExtFolderDisplayPath + localFilePath);
+                if (fileToDelete.exists() && fileToDelete.isFile()) {
+                    boolean deleted = fileToDelete.delete();
+                    if (deleted) {
+                        deletedCount++;
+                        if (DEBUG) Log.i(TAG, "Deleted orphaned local file: " + localFilePath);
+                    } else {
+                        if (DEBUG) Log.e(TAG, "Failed to delete orphaned local file: " + localFilePath);
+                    }
+                }
+            }
+        }
+        if (deletedCount > 0) {
+            if (DEBUG) Log.i(TAG, "Deleted " + deletedCount + " orphaned local file(s) that were removed from server");
+        }
+        
+        // Also clean up empty directories
+        cleanupEmptyDirectories(new File(mExtFolderDisplayPath));
+    }
+
+    /**
+     * Recursively removes empty directories from the display folder.
+     * This is called after deleting orphaned files to clean up any
+     * empty folder structures that may remain.
+     *
+     * @param directory The directory to check and clean
+     * @return true if the directory was deleted (was empty), false otherwise
+     */
+    private boolean cleanupEmptyDirectories(File directory) {
+        if (directory == null || !directory.isDirectory()) {
+            return false;
+        }
+        
+        File[] files = directory.listFiles();
+        if (files == null) {
+            return false;
+        }
+        
+        // First, recursively clean subdirectories
+        for (File file : files) {
+            if (file.isDirectory()) {
+                cleanupEmptyDirectories(file);
+            }
+        }
+        
+        // After cleaning subdirectories, check if this directory is now empty
+        files = directory.listFiles();
+        if (files != null && files.length == 0) {
+            // Don't delete the root display folder itself
+            if (!directory.getPath().equals(mExtFolderDisplayPath)) {
+                boolean deleted = directory.delete();
+                if (deleted && DEBUG) {
+                    Log.i(TAG, "Deleted empty directory: " + directory.getPath());
+                }
+                return deleted;
+            }
+        }
+        return false;
     }
 
     private void addFilepathsToLocalFileList(File[] files){

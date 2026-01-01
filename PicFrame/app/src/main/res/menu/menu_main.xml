@@ -12,21 +12,26 @@
         android:id="@+id/action_download"
         android:icon="@android:drawable/stat_notify_sync_noanim"
         android:title="@string/action_downloadNow"
-        android:orderInCategory="150"
+        android:orderInCategory="200"
         android:visible="false"
         app:showAsAction="ifRoom" />
     <item
-        android:id="@+id/action_about"
-        android:icon="@android:drawable/ic_menu_info_details"
-        android:title="@string/action_about"
-        android:orderInCategory="200"
+        android:id="@+id/action_select_photo"
+        android:icon="@android:drawable/ic_menu_gallery"
+        android:title="@string/action_select_photo"
+        android:orderInCategory="300"
         app:showAsAction="ifRoom" />
-    <item
+	<item
         android:id="@+id/action_exit_kiosk"
         android:icon="@android:drawable/ic_menu_close_clear_cancel"
         android:title="@string/action_exit"
-        android:orderInCategory="300"
+        android:orderInCategory="400"
         android:visible="false"
         app:showAsAction="ifRoom" />
-
+	<item
+        android:id="@+id/action_about"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="@string/action_about"
+        android:orderInCategory="500"
+        app:showAsAction="ifRoom" />
 </menu>

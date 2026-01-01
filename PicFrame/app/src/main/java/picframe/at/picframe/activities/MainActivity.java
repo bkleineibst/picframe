@@ -53,11 +53,15 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.view.LayoutInflater;
+import android.app.Dialog;
 import android.widget.EditText;
 import android.text.InputType;
 import android.app.ActivityManager;
+import android.widget.Button;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,6 +89,22 @@ import picframe.at.picframe.service.DownloadService;
 import picframe.at.picframe.settings.AppData;
 
 public class MainActivity extends ActionBarActivity {
+    /**
+     * Append a message to the debug log overlay and scroll to bottom.
+     */
+    private void appendDebugLog(String message) {
+        if (debugLogTextView != null && debugLogScrollView != null) {
+            debugLogTextView.append(message + "\n");
+            debugLogScrollView.post(new Runnable() {
+                @Override
+                public void run() {
+                    debugLogScrollView.fullScroll(View.FOCUS_DOWN);
+                }
+            });
+        }
+    }
+
+	private static final int REQUEST_SELECT_PHOTO = 2001;
 
     private final static boolean DEBUG = true;
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -121,6 +141,97 @@ public class MainActivity extends ActionBarActivity {
     private ImageView mPause;
     private LinearLayout mRemainingTimeLayout;
     private AlertDialog click_on_settings_dialog;
+    private Dialog syncProgressDialog;
+    private View syncProgressBarView;
+    private ArrayList<String> syncErrors = new ArrayList<>();
+
+    // Debug log overlay UI
+    private RelativeLayout debugLogOverlay;
+    private TextView debugLogTextView;
+    private ScrollView debugLogScrollView;
+    /**
+     * Show the sync progress overlay.
+     * @param message The main message (e.g., "Syncing...")
+     * @param fileName The file currently being synced (optional)
+     * @param percent The percent complete (0-100, or -1 for indeterminate)
+     */
+    private void showSyncProgress(String message, String fileName, int percent) {
+        if (syncProgressBarView != null) {
+            if (percent >= 100) {
+                // Hide the progress bar when sync is complete
+                syncProgressBarView.setVisibility(View.GONE);
+                return;
+            }
+            TextView text = syncProgressBarView.findViewById(R.id.syncProgressText);
+            TextView fileText = syncProgressBarView.findViewById(R.id.syncProgressFile);
+            ProgressBar bar = syncProgressBarView.findViewById(R.id.syncProgressSpinner);
+            final android.widget.ImageButton btnToggleDebugLog = syncProgressBarView.findViewById(R.id.btnToggleDebugLog);
+            if (btnToggleDebugLog != null) {
+                btnToggleDebugLog.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (debugLogOverlay != null) {
+                            if (debugLogOverlay.getVisibility() == View.VISIBLE) {
+                                debugLogOverlay.setVisibility(View.GONE);
+                                btnToggleDebugLog.setImageResource(android.R.drawable.ic_menu_info_details);
+                            } else {
+                                debugLogOverlay.setVisibility(View.VISIBLE);
+                                btnToggleDebugLog.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+                            }
+                        }
+                    }
+                });
+                // Set initial icon based on overlay visibility
+                if (debugLogOverlay != null && debugLogOverlay.getVisibility() == View.VISIBLE) {
+                    btnToggleDebugLog.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+                } else {
+                    btnToggleDebugLog.setImageResource(android.R.drawable.ic_menu_info_details);
+                }
+            }
+            if (text != null) {
+                if (percent >= 0 && percent < 100) {
+                    text.setText((message != null ? message : getString(R.string.syncing)) + " (" + percent + "%)");
+                } else {
+                    text.setText(message != null ? message : getString(R.string.syncing));
+                }
+            }
+            if (fileText != null) fileText.setText(fileName != null ? fileName : "");
+            if (bar != null) {
+                if (percent >= 0) {
+                    bar.setIndeterminate(false);
+                    bar.setMax(100);
+                    bar.setProgress(percent);
+                } else {
+                    bar.setIndeterminate(true);
+                }
+            }
+            syncProgressBarView.setVisibility(View.VISIBLE);
+        }
+        appendDebugLog(String.format("Sync progress: %s (%d%%)", fileName != null ? fileName : "", percent));
+    }
+
+    /**
+     * Update the sync progress overlay with the current file and percent.
+     * Call this from your sync logic as files are processed.
+     */
+    public void updateSyncProgress(String fileName, int percent) {
+        showSyncProgress(getString(R.string.syncing), fileName, percent);
+        // Also ensure the progress bar is hidden if percent >= 100
+        if (percent >= 100) {
+            hideSyncProgress();
+        }
+        appendDebugLog(String.format("updateSyncProgress: %s (%d%%)", fileName != null ? fileName : "", percent));
+    }
+
+    /**
+     * Hide the sync progress overlay.
+     */
+    private void hideSyncProgress() {
+        if (syncProgressBarView != null) {
+            syncProgressBarView.setVisibility(View.GONE);
+        }
+        appendDebugLog("Sync progress hidden.");
+    }
 
     //public static boolean mConnCheckOC, mConnCheckSMB; //TODO still needed?
     public boolean mDoubleBackToExitPressedOnce;
@@ -169,6 +280,39 @@ public class MainActivity extends ActionBarActivity {
 
         mOldPath = AppData.getImagePath();
         mOldRecursive = AppData.getRecursiveSearch();
+
+        // Inflate and add the sync progress bar overlay (non-blocking, top of screen)
+        LayoutInflater inflater = LayoutInflater.from(this);
+        syncProgressBarView = inflater.inflate(R.layout.sync_progress_bar, mainLayout, false);
+        mainLayout.addView(syncProgressBarView);
+        syncProgressBarView.setVisibility(View.GONE);
+
+        // Create and add the debug log overlay (bottom of screen)
+        debugLogOverlay = new RelativeLayout(this);
+        debugLogOverlay.setBackgroundColor(0xAA000000); // semi-transparent black
+        RelativeLayout.LayoutParams overlayParams = new RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.MATCH_PARENT,
+            getResources().getDisplayMetrics().heightPixels / 2 // 1/2 screen height
+        );
+        overlayParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+        debugLogOverlay.setLayoutParams(overlayParams);
+
+        debugLogScrollView = new ScrollView(this);
+        RelativeLayout.LayoutParams scrollParams = new RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.MATCH_PARENT,
+            RelativeLayout.LayoutParams.MATCH_PARENT
+        );
+        debugLogScrollView.setLayoutParams(scrollParams);
+
+        debugLogTextView = new TextView(this);
+        debugLogTextView.setTextColor(0xFFFFFFFF);
+        debugLogTextView.setTextSize(12);
+        debugLogTextView.setPadding(16, 16, 16, 16);
+        debugLogTextView.setText("Debug log initialized.\n");
+        debugLogScrollView.addView(debugLogTextView);
+        debugLogOverlay.setVisibility(View.GONE);
+        debugLogOverlay.addView(debugLogScrollView);
+        mainLayout.addView(debugLogOverlay);
 
         // Initialize slideshow history for random mode
         slideshowHistory = new SlideshowHistory();
@@ -265,15 +409,47 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_MANAGE_EXTERNAL_STORAGE) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                if (Environment.isExternalStorageManager()) {
-                    Toast.makeText(this, "Storage permission granted", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(this, "Storage permission denied. Syncing will not work.", Toast.LENGTH_LONG).show();
-                }
-            }
-        }
+		if (requestCode == REQUEST_SELECT_PHOTO && resultCode == Activity.RESULT_OK && data != null) {
+			Uri selectedImageUri = data.getData();
+			if (selectedImageUri != null && mFilePaths != null) {
+				String selectedPath = getPathFromUri(selectedImageUri);
+				if (selectedPath != null) {
+					// Find the index of the selected photo in the current file list
+					int index = -1;
+					for (int i = 0; i < mFilePaths.size(); i++) {
+						if (mFilePaths.get(i).equals(selectedPath)) {
+							index = i;
+							break;
+						}
+					}
+					if (index != -1) {
+						pager.setCurrentItem(index, false);
+						lastRecordedPage = index;
+						if (!AppData.getRandomize()) {
+							// If not randomized, continue slideshow from selected photo
+							if (AppData.getSlideshow() && paused) {
+								paused = false;
+								setUpSlideShow();
+								startSlideshowCountDown();
+							}
+						}
+					} else {
+						Toast.makeText(this, R.string.main_toast_noFileFound, Toast.LENGTH_SHORT).show();
+					}
+				} else {
+					Toast.makeText(this, R.string.main_toast_noFileFound, Toast.LENGTH_SHORT).show();
+				}
+			}
+		}
+		if (requestCode == REQUEST_MANAGE_EXTERNAL_STORAGE) {
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+				if (Environment.isExternalStorageManager()) {
+					Toast.makeText(this, "Storage permission granted", Toast.LENGTH_SHORT).show();
+				} else {
+					Toast.makeText(this, "Storage permission denied. Syncing will not work.", Toast.LENGTH_LONG).show();
+				}
+			}
+		}
     }
 
 
@@ -286,6 +462,21 @@ public class MainActivity extends ActionBarActivity {
     }
 
     protected void onResume() {
+                // Register debug log broadcast receiver
+                IntentFilter debugLogFilter = new IntentFilter();
+                debugLogFilter.addAction("picframe.at.picframe.DEBUG_LOG_MESSAGE");
+                if (broadcastManager == null) {
+                    broadcastManager = LocalBroadcastManager.getInstance(getApplicationContext());
+                }
+                broadcastManager.registerReceiver(new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        if ("picframe.at.picframe.DEBUG_LOG_MESSAGE".equals(intent.getAction())) {
+                            String msg = intent.getStringExtra("debug_message");
+                            if (msg != null) appendDebugLog(msg);
+                        }
+                    }
+                }, debugLogFilter);
         super.onResume();
 
         debug("onResume");
@@ -375,6 +566,10 @@ public class MainActivity extends ActionBarActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.action_select_photo:
+                // Show a custom dialog to select a photo from all cached folders
+                showCachedPhotoPicker();
+                return true;
             case R.id.action_settings:
                 // If kiosk mode is enabled, require password
                 if (AppData.getKioskEnabled()) {
@@ -390,6 +585,7 @@ public class MainActivity extends ActionBarActivity {
                 return true;
             case R.id.action_download:
                 debug("dowdnload now clicked");
+                showSyncProgress(getString(R.string.syncing), "", 0);
                 Intent startDownloadIntent = new Intent(mContext, DownloadService.class);
                 startDownloadIntent.setAction(Keys.ACTION_STARTDOWNLOAD);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -633,7 +829,6 @@ public class MainActivity extends ActionBarActivity {
                 localpage--;
             }
             pager.setCurrentItem(localpage, true);
-            debug("localpage " + localpage);
         }
     }
 
@@ -1165,6 +1360,7 @@ public class MainActivity extends ActionBarActivity {
                 // received an intent to update the viewpager
                 if (Keys.ACTION_DOWNLOAD_FINISHED.equals(intent.getAction())) {
                     debug("received 'download_finished' action via broadcast");
+                    hideSyncProgress();
                     progressBroadCastsReceived = 0;
                     new Handler().post(new Runnable() {
                         @Override
@@ -1174,10 +1370,18 @@ public class MainActivity extends ActionBarActivity {
                     });
                 } else if (Keys.ACTION_PROGRESSUPDATE.equals(intent.getAction())) {
                     progressBroadCastsReceived++;
-                    int progressPercent = intent.getIntExtra(Keys.MSG_PROGRESSUPDATE_PERCENT, 0);
+                    final int progressPercent = intent.getIntExtra(Keys.MSG_PROGRESSUPDATE_PERCENT, 0);
                     Boolean indeterminate = intent.getBooleanExtra(Keys.MSG_PROGRESSUPDATE_INDITERMINATE, true);
+                    final String fileName = intent.getStringExtra(Keys.MSG_PROGRESSUPDATE_FILENAME);
                     debug("received 'progress_update' - " +
-                            progressPercent + "% - indeterminate?" + indeterminate);
+                            progressPercent + "% - indeterminate?" + indeterminate + " file: " + fileName);
+                    // Update the sync progress bar in the UI
+                    new Handler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            updateSyncProgress(fileName != null ? fileName : "", progressPercent);
+                        }
+                    });
                     if (progressBroadCastsReceived > 2) {
                         new Handler().post(new Runnable() {
                             @Override
@@ -1187,7 +1391,6 @@ public class MainActivity extends ActionBarActivity {
                         });
                         progressBroadCastsReceived = 0;
                     }
-
                 }
             }
         }
@@ -1224,7 +1427,6 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onTick(long l) {
                 remainingDisplayTime = l/1000;
-                debug("tick!" + remainingDisplayTime);
             }
 
             @Override
@@ -1251,9 +1453,143 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
+    private void showCachedPhotoPicker() {
+        showFolderPicker(AppData.getImagePath());
+    }
+
+    /**
+     * Show a hierarchical folder/file picker dialog for the given directory.
+     */
+    private void showFolderPicker(String dirPath) {
+        final java.io.File dir = new java.io.File(dirPath);
+        if (!dir.exists() || !dir.isDirectory()) {
+            Toast.makeText(this, R.string.main_toast_noFileFound, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        java.io.File[] files = dir.listFiles();
+        if (files == null || files.length == 0) {
+            Toast.makeText(this, R.string.main_toast_noFileFound, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // Separate folders and files, folders first
+        java.util.List<java.io.File> folders = new java.util.ArrayList<>();
+        java.util.List<java.io.File> imageFiles = new java.util.ArrayList<>();
+        for (java.io.File f : files) {
+            if (f.isDirectory()) {
+                folders.add(f);
+            } else if (isImageFile(f)) {
+                imageFiles.add(f);
+            }
+        }
+        final java.util.List<java.io.File> allItems = new java.util.ArrayList<>();
+        allItems.addAll(folders);
+        allItems.addAll(imageFiles);
+        CharSequence[] itemNames = new CharSequence[allItems.size()];
+        for (int i = 0; i < allItems.size(); i++) {
+            java.io.File f = allItems.get(i);
+            if (f.isDirectory()) {
+                itemNames[i] = "[" + f.getName() + "]";
+            } else {
+                itemNames[i] = f.getName();
+            }
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(dirPath.equals(AppData.getImagePath()) ? getString(R.string.action_select_photo) : dir.getName());
+        builder.setItems(itemNames, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                java.io.File selected = allItems.get(which);
+                if (selected.isDirectory()) {
+                    showFolderPicker(selected.getAbsolutePath());
+                } else {
+                    String selectedPath = selected.getAbsolutePath();
+                    int index = -1;
+                    if (mFilePaths != null) {
+                        for (int i = 0; i < mFilePaths.size(); i++) {
+                            if (mFilePaths.get(i).equals(selectedPath)) {
+                                index = i;
+                                break;
+                            }
+                        }
+                    }
+                    if (index != -1) {
+                        pager.setCurrentItem(index, false);
+                        lastRecordedPage = index;
+                        if (!AppData.getRandomize()) {
+                            if (AppData.getSlideshow() && paused) {
+                                paused = false;
+                                setUpSlideShow();
+                                startSlideshowCountDown();
+                                if (mPause != null) {
+                                    mPause.setVisibility(View.GONE);
+                                }
+                            }
+                        }
+                    } else {
+                        Toast.makeText(MainActivity.this, R.string.main_toast_noFileFound, Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
+        if (!dirPath.equals(AppData.getImagePath())) {
+            builder.setNegativeButton(R.string.action_back, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    java.io.File parent = dir.getParentFile();
+                    if (parent != null) {
+                        showFolderPicker(parent.getAbsolutePath());
+                    }
+                }
+            });
+        } else {
+            builder.setNegativeButton(android.R.string.cancel, null);
+        }
+        builder.show();
+    }
+
+    /**
+     * Returns true if the file is an image (by extension).
+     */
+    private boolean isImageFile(java.io.File file) {
+        String[] exts = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"};
+        String name = file.getName().toLowerCase();
+        for (String ext : exts) {
+            if (name.endsWith(ext)) return true;
+        }
+        return false;
+    }
+				
+	private String getPathFromUri(Uri uri) {
+		// Try to get the real file path from the Uri
+		// This is a simplified approach for local files; may need to be extended for SAF/other providers
+		if (uri == null) return null;
+		if ("file".equalsIgnoreCase(uri.getScheme())) {
+			return uri.getPath();
+		}
+		// For content Uris, try to resolve to file path
+		try {
+			String[] proj = { android.provider.MediaStore.Images.Media.DATA };
+			android.database.Cursor cursor = getContentResolver().query(uri, proj, null, null, null);
+			if (cursor != null) {
+				int column_index = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Images.Media.DATA);
+				if (cursor.moveToFirst()) {
+					String path = cursor.getString(column_index);
+					cursor.close();
+					return path;
+				}
+				cursor.close();
+			}
+		} catch (Exception e) {
+			// Ignore and fallback
+		}
+		// Fallback: try to get last path segment
+		return uri.getPath();
+	}
+
     private void debug(String msg) {
         if (DEBUG) {
             Log.d(TAG, msg);
+            appendDebugLog(msg);
         }
     }
 }

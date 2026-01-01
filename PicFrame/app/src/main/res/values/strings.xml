@@ -78,6 +78,10 @@
     <string name="sett_loginCheck_failure">Failure</string>
     <string name="sett_resetTitle">Restore default settings</string>
     <string name="sett_resetSummary">Reset settings to default</string>
+
+    <!-- Manual photo selection -->
+    <string name="action_select_photo">Select photo</string>
+    <string name="action_back">Back</string>
     <string name="sett_confirmationDialogMessage">Do you really want to delete your settings information and reset everything to default?</string>
         <!-- Settings-Details Strings -->
     <string name="sett_srcPath_externalSD">Directory</string>
@@ -921,6 +925,8 @@
     <string name="status_downloadIntervalNoDownload">No download scheduled</string>
     <!-- STATUS STRINGS END -->
 
-
+    <!-- Sync Progress/Error UI -->
+    <string name="syncing">Syncing photos...</string>
+    <string name="show_debug_log">Show Debug Log</string>
 
 </resources>

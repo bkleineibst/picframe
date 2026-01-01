@@ -184,14 +184,17 @@ public class DownloadService extends Service implements ServiceCallbacks {
         progressIntent.addCategory(Intent.CATEGORY_DEFAULT);
         progressIntent.setAction(Keys.ACTION_PROGRESSUPDATE);
 
+        sendDebugLogMessage("DownloadService: onStartCommand invoked");
         if (!downloading) {
             // check for problems only in mainactivity (after settings changed) (checkForProblemsAndShowToasts)
             // since at this point we are mostly sure to not run into problems, we check for wifi
             if (!GlobalPhoneFuncs.wifiConnected()) {
+                sendDebugLogMessage("DownloadService: No WiFi connection, aborting sync");
                 stopForeground(false);
                 downloadFailed(Downloader.Failure.WIFI);
                 return Service.START_NOT_STICKY;
             } else if (!initializedFolders()){
+                sendDebugLogMessage("DownloadService: Failed to initialize folders, aborting sync");
                 stopForeground(false);
                 showNotification(Keys.NotificationStates.FAILURE, 0, getString(R.string.service_notif_failureFolderInitFailure));
                 stopSelf();
@@ -205,21 +208,26 @@ public class DownloadService extends Service implements ServiceCallbacks {
             // if type is external sd, no download should happen (should never be the case)
             AppData.sourceTypes tmpSource;
             tmpSource = AppData.getSourceType();
+            sendDebugLogMessage("DownloadService: Sync source type: " + tmpSource);
             if (AppData.sourceTypes.ExternalSD.equals(tmpSource)) {
+                sendDebugLogMessage("DownloadService: FAILURE! Started with SD Card selected");
                 Log.d(TAG, "FAILURE! DownloadService started, while SD Card is selected");
                 stopSelf();
                 return Service.START_NOT_STICKY;
             } else if (AppData.sourceTypes.OwnCloud.equals(tmpSource)) {
+                sendDebugLogMessage("DownloadService: Using OwnCloud sync");
                 args = setUpOcClientArguments();
                 downloader = new Downloader_OC(args);
             } // else if (AppData.sourceTypes.Dropbox.equals(tmpSource) {}    //  TODO Dropbox
             if (args == null) {
+                sendDebugLogMessage("DownloadService: Arguments null, aborting sync");
                 Log.d(TAG, "Arguments cannot be null, aborting!");
                 downloadFailed(Downloader.Failure.LOGIN);
                 return Service.START_NOT_STICKY;
             }
             // start download here, progress will be published via callback to this class and then broadcast
             downloading = true;
+            sendDebugLogMessage("DownloadService: Starting download thread");
             downloader.start();
             // show basic start notification
             showNotification(Keys.NotificationStates.START, 0, null);
@@ -429,10 +437,15 @@ public class DownloadService extends Service implements ServiceCallbacks {
     @Override
     public void publishProgress(float progressPercent, boolean progressIndeterminate) {
         Log.d(TAG, "SHOW NOTIFICATION PROGRESS: " + progressPercent);
+        sendDebugLogMessage("DownloadService: Progress update: " + progressPercent + "%");
         int percent = Math.round(progressPercent);
         showNotification(Keys.NotificationStates.PROGRESS, percent, null);
         progressIntent.putExtra(Keys.MSG_PROGRESSUPDATE_PERCENT, percent);
         progressIntent.putExtra(Keys.MSG_PROGRESSUPDATE_INDITERMINATE, progressIndeterminate);
+        // Add file name if available
+        if (downloader != null && downloader.getCurrentFileName() != null) {
+            progressIntent.putExtra(Keys.MSG_PROGRESSUPDATE_FILENAME, downloader.getCurrentFileName());
+        }
         broadcastManager.sendBroadcast(progressIntent);
     }
 
@@ -443,6 +456,7 @@ public class DownloadService extends Service implements ServiceCallbacks {
         // now the download is finished, we can stop the service.
         // if service is stopped, notification is active and app gets opened, delete notification
         if (DEBUG)  Log.d(TAG, "downloader sent 'finishedDownload' -- ending");
+        sendDebugLogMessage("DownloadService: Sync finished. Files downloaded: " + count);
         downloading = false;
         finished = true;
         if (count <= 0) {
@@ -457,6 +471,7 @@ public class DownloadService extends Service implements ServiceCallbacks {
     @Override
     public void downloadFailed(Downloader.Failure failureMsg) {
         if (DEBUG)  Log.d(TAG, "downloader sent 'downloadFailed' -- ending");
+        sendDebugLogMessage("DownloadService: Sync failed: " + failureMsg);
         downloading = false;
         finished = false;
         if (Downloader.Failure.LOGIN.equals(failureMsg)) {
@@ -489,4 +504,20 @@ public class DownloadService extends Service implements ServiceCallbacks {
         stopSelf();
     }
 */
+
+	@Override
+	public void publishDebugLog(String message) {
+		sendDebugLogMessage(message);
+	}
+
+	// Utility method to send debug log messages to MainActivity for overlay display
+	private void sendDebugLogMessage(String message) {
+		if (broadcastManager == null) {
+			broadcastManager = LocalBroadcastManager.getInstance(getApplicationContext());
+		}
+		Intent debugIntent = new Intent();
+		debugIntent.setAction("picframe.at.picframe.DEBUG_LOG_MESSAGE");
+		debugIntent.putExtra("debug_message", message);
+		broadcastManager.sendBroadcast(debugIntent);
+}
 }

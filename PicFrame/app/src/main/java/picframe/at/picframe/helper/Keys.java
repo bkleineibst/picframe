@@ -36,6 +36,7 @@ public class Keys {
     public static final String ACTION_PROGRESSUPDATE = "picframe.at.picframe.service.PROGRESSUPDATE";
     public static final String MSG_PROGRESSUPDATE_PERCENT = "progressUpdatePercent";
     public static final String MSG_PROGRESSUPDATE_INDITERMINATE = "progressUpdateInditerminate";
+	public static final String MSG_PROGRESSUPDATE_FILENAME = "progressUpdateFileName";
     public static final String MSG_FAILURE = "failure";
 
 /* Keys to SettingsActivity */

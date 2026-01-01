@@ -1,3 +1,4 @@
+    // Optionally override to provide current file name for progress updates
 package picframe.at.picframe.service.downloader;
 
 import picframe.at.picframe.service.ServiceCallbacks;
@@ -15,4 +16,5 @@ public abstract class Downloader extends Thread {
             }
         }
     }
+    public String getCurrentFileName() { return null; }
 }

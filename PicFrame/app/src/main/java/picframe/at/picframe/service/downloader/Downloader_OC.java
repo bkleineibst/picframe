@@ -74,10 +74,11 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
     private boolean loginFailed = false;
     private boolean firstOperation = true;
 
-
+    private String currentFileName = null;
 
     public Downloader_OC(HashMap<String, Object> args) {
         if (DEBUG) Log.d(TAG, "created OC Downloader");
+        if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: created OC Downloader");
         if (args == null)   return;
         mClient = (OwnCloudClient) args.get(CLIENT);
         mHandler = (Handler) args.get(HANDLER);
@@ -90,36 +91,43 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
     @Override
     public void run() {
         if (DEBUG) Log.d(TAG, "started OC Downloader");
+        if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: started OC Downloader");
         initializeCounterArraysQueuesPaths();
 
         if (DEBUG) Log.i(TAG,
                     "AppRootFolder: "   + mExtFolderAppRoot +
                 " -- CacheFolder: "     + mExtFolderCachePath +
                 " -- DisplayFoler: "    + mExtFolderDisplayPath);
+        if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: AppRootFolder: " + mExtFolderAppRoot + " -- CacheFolder: " + mExtFolderCachePath + " -- DisplayFolder: " + mExtFolderDisplayPath);
         if (DEBUG) Log.i(TAG, "thread counter at first: " + mThreadCounter.get());
         if (DEBUG) Log.i(TAG, "###### STARTING OWNCLOUD DOWNLOAD TASK #####");
 
 
         if (!checkLogin()) {
+            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Login failed");
             downloadFailure(Failure.LOGIN);
             return;
         }
         // populate the mRemoteFileList with all the (accepted) remote files found on server
         if (!readAllRemoteFoldersInDirAndWait()) {
+            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Failed to read remote folders");
             downloadFailure(Failure.INTERRUPT);
             return;
         }
         // check which files have to be downloaded (not downloaded yet) (false if none/0 to download)
         if (!compareListsAndCheckForNewFilesToDownload()) {
+            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: No new files to download");
             finishedDownload();
             return;
         }
         // process and download all images (false if interrupted)
         if (!processAndDownloadLoop()) {
+            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Download loop interrupted");
             downloadFailure(Failure.INTERRUPT);
             return;
         }
 
+        if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Finished download task");
         finishedDownload();
         // END OF THREAD!
     }
@@ -318,9 +326,10 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
         File mExtFolderCacheObject = new File(mExtFolderCachePath);
         boolean cacheFolderExists = mExtFolderCacheObject.exists();
         while( mThreadCounter.get() > 0 ||
-                    (mDownloadedFilesCount.get() != mRemoteFilesToDownloadList.size()) ||
-                    mDownloadedFiles.peek() != null) {
+            (mDownloadedFilesCount.get() != mRemoteFilesToDownloadList.size()) ||
+            mDownloadedFiles.peek() != null) {
             if (mDownloadedFiles.peek() != null) {
+                if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Processing file " + mDownloadedFiles.peek());
                 //scale, rotate, save smaller image, delete cached/big image
                 processFile();
             }
@@ -337,24 +346,51 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
                     // check every 3 files, if still connected to wifi
                     if ((fileIndex % 3) == 0) {
                         if (!GlobalPhoneFuncs.wifiConnected()) {
+                            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Lost WiFi connection during download");
                             downloadFailure(Failure.WIFI);
                             continue;
                         }
                     }
                     // start download
-                    if (cacheFolderExists && mThreadCounter.get() < 2 &&
-                            fileIndex < mRemoteFilesToDownloadList.size()) {
+                    if (mThreadCounter.get() < 2 && fileIndex < mRemoteFilesToDownloadList.size()) {
+                        // Ensure cache directory exists before each download
+                        if (!mExtFolderCacheObject.exists()) {
+                            boolean created = mExtFolderCacheObject.mkdirs();
+                            if (created) {
+                                if (DEBUG) Log.i(TAG, "Created cache directory: " + mExtFolderCacheObject.getAbsolutePath());
+                                if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Created cache directory: " + mExtFolderCacheObject.getAbsolutePath());
+                            } else {
+                                if (DEBUG) Log.e(TAG, "FAILED to create cache directory: " + mExtFolderCacheObject.getAbsolutePath());
+                                if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: FAILED to create cache directory: " + mExtFolderCacheObject.getAbsolutePath());
+                            }
+                        } else {
+                            if (DEBUG) Log.i(TAG, "Cache directory already exists: " + mExtFolderCacheObject.getAbsolutePath());
+                            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Cache directory already exists: " + mExtFolderCacheObject.getAbsolutePath());
+                        }
                         RemoteFile remoteFile = mRemoteFilesToDownloadList.get(fileIndex);
+
+						// Log remote file info and path
+						if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Remote file to download: " + remoteFile.toString());
+						if (DEBUG) Log.i(TAG, "Remote file to download: " + remoteFile.toString());
+						if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Downloading remote path: " + remoteFile.getRemotePath());
+						if (DEBUG) Log.i(TAG, "Downloading remote path: " + remoteFile.getRemotePath());
+
                         // if more than MIN_BYTES_REMAINING bytes would be free after the download -> download
                         if ((GlobalPhoneFuncs.getSdCardFreeBytes() - remoteFile.getLength()) > MIN_BYTES_REMAINING) {
-                            if (DEBUG) Log.i(TAG, "Starting download: " + remoteFile.getRemotePath());
+                            if (DEBUG) Log.i(TAG, "Preparing to start download: " + remoteFile.getRemotePath());
+                            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Preparing to start download: " + remoteFile.getRemotePath());
                             mThreadCounter.getAndIncrement();
                             DownloadRemoteFileOperation downloadOperation =
                                     new DownloadRemoteFileOperation(remoteFile.getRemotePath(), mExtFolderCacheObject.getAbsolutePath());
+                            if (DEBUG) Log.i(TAG, "Calling downloadOperation.execute for: " + remoteFile.getRemotePath());
+                            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Calling downloadOperation.execute for: " + remoteFile.getRemotePath());
                             downloadOperation.execute( mClient, this, mHandler);
+                            if (DEBUG) Log.i(TAG, "Returned from downloadOperation.execute for: " + remoteFile.getRemotePath());
+                            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Returned from downloadOperation.execute for: " + remoteFile.getRemotePath());
                             fileIndex++;
                         } else {
                             if (DEBUG) Log.e(TAG, "No more space available on the sd card!");
+                            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: No more space available on the sd card!");
                             downloadFailure(Failure.STORAGESPACE);
                         }
                     }
@@ -369,6 +405,7 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
         boolean deleted;
         String fileToProcess = mDownloadedFiles.poll();
         processed = scaleRotateAndSave(fileToProcess);
+        if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: File processed: " + fileToProcess + ", success: " + processed);
         if (processed) {    // if rotate, scale and move worked, delete from list, and delete src file
             if (DEBUG) Log.i(TAG, "rot/scaled/saved >" + fileToProcess + "<");
             File fileToDelete = new File(fileToProcess);
@@ -502,6 +539,10 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
 
     @Override
     public void onRemoteOperationFinish(RemoteOperation operation, RemoteOperationResult result) {
+        // Log entry to callback
+        if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: ENTERED onRemoteOperationFinish callback: operation=" + operation.getClass().getSimpleName());
+        if (DEBUG) Log.i(TAG, "ENTERED onRemoteOperationFinish callback");
+        // Log operation type and result
         if (loginRequest.get()) {
             if (operation instanceof ReadRemoteFolderOperation) {
                 if (result.isSuccess()) {
@@ -512,13 +553,45 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
                 }
             }
             mThreadCounter.getAndDecrement();
+            // Log the completion of the login operation
             loginRequest.set(false);
             return;
         }
         if (operation instanceof ReadRemoteFolderOperation) {
             handleReadOperation(result);
         } else if (operation instanceof DownloadRemoteFileOperation) {
+            // Log the download operation result
+            // Use only available info from result, fix double-prepending of cache dir
+            String fileName = result.getFilename();
+            String fullLocalPath;
+            if (fileName != null && fileName.startsWith(mExtFolderCachePath)) {
+                fullLocalPath = fileName;
+            } else {
+                fullLocalPath = mExtFolderCachePath + File.separator + fileName;
+            }
+            File localFile = new File(fullLocalPath);
+            boolean exists = localFile.exists();
+            File parentDir = localFile.getParentFile();
+            boolean parentExists = parentDir != null && parentDir.exists();
+            boolean parentWritable = parentDir != null && parentDir.canWrite();
+            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Downloaded file should be at: " + fullLocalPath + ", exists: " + exists + ", parent dir exists: " + parentExists + ", parent dir writable: " + parentWritable);
+            if (DEBUG) Log.i(TAG, "Downloaded file should be at: " + fullLocalPath + ", exists: " + exists + ", parent dir exists: " + parentExists + ", parent dir writable: " + parentWritable);
+            if (!exists) {
+                if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: ERROR - Local file does not exist after download: " + fullLocalPath);
+                if (DEBUG) Log.e(TAG, "ERROR - Local file does not exist after download: " + fullLocalPath);
+            }
+            // Log HTTP status and exception
+            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Download result HTTP code: " + result.getHttpCode() + ", code: " + result.getCode() + ", exception: " + (result.getException() != null ? result.getException().toString() : "none"));
+            if (DEBUG) Log.i(TAG, "Download result HTTP code: " + result.getHttpCode() + ", code: " + result.getCode() + ", exception: " + (result.getException() != null ? result.getException().toString() : "none"));
             handleDownloadOperation(result);
+            if (result.isSuccess()) {
+                if (DEBUG) Log.i(TAG, "onRemoteOperationFinish: Download complete for " + result.getFilename());
+                if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Download complete for " + result.getFilename());
+            } else {
+                if (DEBUG) Log.e(TAG, "onRemoteOperationFinish: Download failed for " + result.getFilename() + ", reason: " + result.getLogMessage());
+                // Log the failure reason
+                if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Download failed for " + result.getFilename() + ", reason: " + result.getLogMessage());
+            }
         }
     }
 
@@ -558,6 +631,8 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
     }
 
     private void handleDownloadOperation(RemoteOperationResult result) {
+        // Set current file name for progress reporting
+        currentFileName = result.getFilename();
         if (result.isSuccess()) {
             if (DEBUG) Log.d(TAG, "Download: success -- info:" + result.getFilename()); // LogMessage: success, status code 200
             try {
@@ -572,9 +647,15 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
             if (DEBUG) Log.e(TAG, "Download: FAILURE -- info:" + result.getFilename() + " = " + result.getLogMessage());
         }
         mThreadCounter.getAndDecrement();
+        
     }
 
-    @Override
+	@Override
+	public String getCurrentFileName() {
+		return currentFileName;
+	}
+    
+	@Override
     public void onTransferProgress(long progressRate, long totalTransferredSoFar,
                                    long totalToTransfer, String fileAbsoluteName) { }
 
@@ -586,6 +667,7 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
             if (percentAsFloat > 0)
                 percentAsFloat *= 100;
             serviceCallbacks.publishProgress(percentAsFloat, indeterminate);
+            serviceCallbacks.publishDebugLog("Downloader_OC: Progress update: " + percentAsFloat + "%");
             if (DEBUG) Log.i(TAG, "% update: " + percentAsFloat);
         } else {
             if (DEBUG)  Log.d(TAG, "couldn't publish progress, event object is null");
@@ -595,6 +677,7 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
     private void finishedDownload() {
         if (serviceCallbacks != null) {
             if (DEBUG) Log.i(TAG, "###### FINISHED OWNCLOUD TASK #####");
+            serviceCallbacks.publishDebugLog("Downloader_OC: Finished download task, total files: " + mDownloadedFilesCount.get());
             serviceCallbacks.finishedDownload(mDownloadedFilesCount.get());
         } else {
             if (DEBUG)  Log.d(TAG, "couldn't 'finish' download, event obj.is null");
@@ -607,6 +690,7 @@ public class Downloader_OC extends Downloader implements OnRemoteOperationListen
             failedOnce = true;
             Thread.currentThread().interrupt();
             if (DEBUG) Log.e(TAG, "Thread interrupted!");
+            if (serviceCallbacks != null) serviceCallbacks.publishDebugLog("Downloader_OC: Download failed: " + failType);
             if (serviceCallbacks != null) {
                 serviceCallbacks.downloadFailed(failType);
             } else {

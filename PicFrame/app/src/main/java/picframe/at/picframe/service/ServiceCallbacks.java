@@ -7,4 +7,6 @@ public abstract interface ServiceCallbacks {
     void publishProgress(float progressPercent, boolean progressIndeterminate); // TODO add filecount
     void finishedDownload(int count);
     void downloadFailed(Downloader.Failure failureMsg);
+    // Debug log relay for overlay
+    void publishDebugLog(String message);
 }

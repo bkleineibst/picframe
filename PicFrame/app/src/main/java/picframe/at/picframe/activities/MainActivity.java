@@ -335,6 +335,9 @@ public class MainActivity extends ActionBarActivity {
             public void onPageSelected(int position) {
                 selectTransformer();
                 
+                currentPage = position;
+                AppData.setCurrentPage(currentPage);
+                
                 // Track history for random mode navigation
                 if (AppData.getRandomize() && !navigatingFromHistory) {
                     // Record this page in history if it's a new visit
@@ -368,6 +371,11 @@ public class MainActivity extends ActionBarActivity {
         }
 
         System.out.println("STARTING PAGE  " + currentPage);
+        
+        // Set the initial page position
+        if(currentPage >= 0 && currentPage < pager.getAdapter().getCount()) {
+            pager.setCurrentItem(currentPage, false);
+        }
 
         rightToLeft = AppData.getDirection();
 
@@ -513,8 +521,8 @@ public class MainActivity extends ActionBarActivity {
 
         updateFileList();
 
-        // start on the page we left in onPause, unless it was the first or last picture (as this freezes the slideshow
-        if(currentPage < pager.getAdapter().getCount() -1 && currentPage > 0) {
+        // Resume from the last viewed page
+        if(currentPage >= 0 && currentPage < pager.getAdapter().getCount()) {
             pager.setCurrentItem(currentPage);
         }
         
@@ -678,7 +686,6 @@ public class MainActivity extends ActionBarActivity {
             click_on_settings_dialog.cancel();
             click_on_settings_dialog.dismiss();
         }
-        currentPage = pager.getCurrentItem();
     }
 
     public void onBackPressed() {
@@ -1213,7 +1220,6 @@ public class MainActivity extends ActionBarActivity {
 //        setUp = new DisplayImages(MainActivity.this);
         try {
             pager.setAdapter(imagePagerAdapter);
-            currentPage = imagePagerAdapter.getPage();
         }
         catch (Exception e){
             e.printStackTrace();

@@ -51,10 +51,8 @@
     <string name="sett_displayTime">Display Time</string>
     <string name="sett_displayTimeSumm">Display time for each picture</string>
     <string name="sett_slideShow">Slideshow</string>
-    <string name="sett_randomize">Random image</string>
-    <string name="sett_randomizeSumm">Whether the pictures should be randomized or in filename order</string>
-    <string name="sett_randomizeSummOff">Pictures won\'t be randomized (Filename order)</string>
-    <string name="sett_randomizeSummOn">Pictures will be randomized</string>
+    <string name="sett_sortOrder">Sort order</string>
+    <string name="sett_sortOrderSumm">Choose how photos should be sorted</string>
     <string name="sett_slideShowSumm">Whether pictures change after given time</string>
     <string name="sett_slideShowSummOff">Pictures won\'t change automatically</string>
     <string name="sett_slideShowSummOn">Pictures will change automatically after given time</string>
@@ -168,7 +166,7 @@
     <string name="sett_key_password" translatable="false">Password</string>
     <string name="sett_key_slideshow" translatable="false">Slideshow</string>
     <string name="sett_key_scaling" translatable="false">Scaling</string>
-    <string name="sett_key_randomize" translatable="false">Randomize</string>
+    <string name="sett_key_sortOrder" translatable="false">SortOrder</string>
     <string name="sett_key_displaytime" translatable="false">DisplayTime</string>
     <string name="sett_key_srctype" translatable="false">SrcType</string>
     <string name="sett_key_srcpath_sd" translatable="false">SrcPath_sd</string>

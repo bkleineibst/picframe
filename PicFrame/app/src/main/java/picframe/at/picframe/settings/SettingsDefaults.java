@@ -19,7 +19,7 @@ public class SettingsDefaults {
         defValues.put(R.string.sett_key_password,"");
         defValues.put(R.string.sett_key_slideshow, tBool);
         defValues.put(R.string.sett_key_scaling, fBool);
-        defValues.put(R.string.sett_key_randomize, fBool);
+        defValues.put(R.string.sett_key_sortOrder, "0");
         defValues.put(R.string.sett_key_displaytime, "4");
         defValues.put(R.string.sett_key_srctype, "0");
         defValues.put(R.string.sett_key_srcpath_sd, "");

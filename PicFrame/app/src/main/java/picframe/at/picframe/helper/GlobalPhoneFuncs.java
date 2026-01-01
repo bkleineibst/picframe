@@ -31,9 +31,12 @@ import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import picframe.at.picframe.activities._MainApp;
+import picframe.at.picframe.helper.viewpager.EXIF_helper;
 import picframe.at.picframe.settings.AppData;
 
 public class GlobalPhoneFuncs {
@@ -63,9 +66,34 @@ public class GlobalPhoneFuncs {
             fileArray = readSdDirectory(path);
         }
         if (fileArray.isEmpty()) return fileArray;
-        if (AppData.getRandomize()) {
+        
+        int sortOrder = AppData.getSortOrder();
+        if (sortOrder == 1) {
+            // Random
             Collections.shuffle(fileArray);
+        } else if (sortOrder == 2) {
+            // Sort by photo date/time using cache
+            final PhotoDateCache cache = PhotoDateCache.getInstance(_MainApp.getINSTANCE().getApplicationContext());
+            Collections.sort(fileArray, new Comparator<String>() {
+                @Override
+                public int compare(String path1, String path2) {
+                    // Use cached dates instead of reading EXIF directly
+                    Date date1 = cache.getCachedDate(path1);
+                    Date date2 = cache.getCachedDate(path2);
+                    
+                    // If both have dates, compare them
+                    if (date1 != null && date2 != null) {
+                        return date1.compareTo(date2);
+                    }
+                    // If only one has a date, put it first
+                    if (date1 != null) return -1;
+                    if (date2 != null) return 1;
+                    // If neither has a date, sort by filename
+                    return path1.compareTo(path2);
+                }
+            });
         } else {
+            // Sort by filename (default, sortOrder == 0)
             Collections.sort(fileArray);
         }
         return fileArray;

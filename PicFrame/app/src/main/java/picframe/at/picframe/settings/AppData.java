@@ -81,10 +81,16 @@ public class AppData {
                         (String) SettingsDefaults.getDefaultValueForKey(R.string.sett_key_transition)));
     }
 
+    // Sort order for displayed images (0=filename, 1=random, 2=photo date)
+    public static int getSortOrder() {
+        return Integer.parseInt(mPrefs.getString(getAppContext().getString(R.string.sett_key_sortOrder),
+                (String) SettingsDefaults.getDefaultValueForKey(R.string.sett_key_sortOrder)));
+    }
+
     // flag whether to randomize the order of the displayed images (on=true)
+    // Deprecated: Use getSortOrder() instead
     public static boolean getRandomize() {
-        return mPrefs.getBoolean(getAppContext().getString(R.string.sett_key_randomize),
-                (Boolean) SettingsDefaults.getDefaultValueForKey(R.string.sett_key_randomize));
+        return getSortOrder() == 1;
     }
 
     // flag whether to scale the displayed image (on=true)

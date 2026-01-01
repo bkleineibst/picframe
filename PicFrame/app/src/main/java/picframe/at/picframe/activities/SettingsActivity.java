@@ -177,6 +177,7 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
     private void populateEditableFieldsList() {
         editableTitleFields.add(getString(R.string.sett_key_displaytime));
         editableTitleFields.add(getString(R.string.sett_key_transition));
+        editableTitleFields.add(getString(R.string.sett_key_sortOrder));
         editableTitleFields.add(getString(R.string.sett_key_srctype));
         editableTitleFields.add(getString(R.string.sett_key_srcpath_sd));
         editableTitleFields.add(getString(R.string.sett_key_username));
@@ -289,6 +290,8 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
                 mPrefTitle = getString(R.string.sett_displayTime);
             } else if (getString(R.string.sett_key_transition).equals(key)) {
                 mPrefTitle = getString(R.string.sett_transition);
+            } else if (getString(R.string.sett_key_sortOrder).equals(key)) {
+                mPrefTitle = getString(R.string.sett_sortOrder);
             } else if (getString(R.string.sett_key_srctype).equals(key)) {
                 mPrefTitle = getString(R.string.sett_srcType);
             } else if (getString(R.string.sett_key_srcpath_sd).equals(key)) {

@@ -42,6 +42,17 @@
         <item name="86400">86400</item>
     </string-array>
 
+    <string-array name="sortOrderEntries">
+        <item name="0">Filename</item>
+        <item name="1">Random</item>
+        <item name="2">Photo date/time</item>
+    </string-array>
+    <string-array translatable="false" name="sortOrderValues">
+        <item name="0">0</item>
+        <item name="1">1</item>
+        <item name="2">2</item>
+    </string-array>
+
     <string-array name="transitionTypeEntries">
         <item name="0">Accordion</item>
         <item name="1">Background to foreground</item>

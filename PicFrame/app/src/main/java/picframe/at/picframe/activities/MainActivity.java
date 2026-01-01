@@ -70,6 +70,7 @@ import picframe.at.picframe.R;
 import picframe.at.picframe.helper.GlobalPhoneFuncs;
 import picframe.at.picframe.helper.Keys;
 import picframe.at.picframe.helper.alarm.AlarmScheduler;
+import picframe.at.picframe.helper.PhotoDateCache;
 import picframe.at.picframe.helper.viewpager.AccordionTransformer;
 import picframe.at.picframe.helper.viewpager.BackgroundToForegroundTransformer;
 import picframe.at.picframe.helper.viewpager.CubeOutTransformer;
@@ -1178,6 +1179,21 @@ public class MainActivity extends ActionBarActivity {
             showExamplePictures = mFilePaths.isEmpty() || mFilePaths.size() <= 0;
             if (showExamplePictures) {
                 Toast.makeText(mContext,R.string.main_toast_noFileFound, Toast.LENGTH_SHORT).show();
+            } else {
+                // Update the date cache for the new file list
+                // Always maintain cache regardless of current sort order so it's ready when needed
+                PhotoDateCache cache = PhotoDateCache.getInstance(getApplicationContext());
+                cache.updateCacheAsync(mFilePaths, new PhotoDateCache.CacheUpdateListener() {
+                    @Override
+                    public void onProgress(int processed, int total) {
+                        // Could show progress in debug log if needed
+                    }
+                    
+                    @Override
+                    public void onComplete() {
+                        // Cache is ready, could trigger a resort if needed
+                    }
+                });
             }
         }
         setSize(); // size is count of images in folder, or constant if example pictures are used
@@ -1481,16 +1497,66 @@ public class MainActivity extends ActionBarActivity {
                 imageFiles.add(f);
             }
         }
+        
+        // Sort folders by name
+        java.util.Collections.sort(folders, new java.util.Comparator<java.io.File>() {
+            @Override
+            public int compare(java.io.File f1, java.io.File f2) {
+                return f1.getName().compareToIgnoreCase(f2.getName());
+            }
+        });
+        
+        // Sort image files based on current sort order
+        int sortOrder = AppData.getSortOrder();
+        if (sortOrder == 2) {
+            // Sort by photo date/time using cache
+            final PhotoDateCache cache = PhotoDateCache.getInstance(getApplicationContext());
+            java.util.Collections.sort(imageFiles, new java.util.Comparator<java.io.File>() {
+                @Override
+                public int compare(java.io.File f1, java.io.File f2) {
+                    java.util.Date date1 = cache.getCachedDate(f1.getAbsolutePath());
+                    java.util.Date date2 = cache.getCachedDate(f2.getAbsolutePath());
+                    
+                    // If both have dates, compare them
+                    if (date1 != null && date2 != null) {
+                        return date1.compareTo(date2);
+                    }
+                    // If only one has a date, put it first
+                    if (date1 != null) return -1;
+                    if (date2 != null) return 1;
+                    // If neither has a date, sort by filename
+                    return f1.getName().compareToIgnoreCase(f2.getName());
+                }
+            });
+        } else {
+            // Sort by filename (for both filename and random modes)
+            java.util.Collections.sort(imageFiles, new java.util.Comparator<java.io.File>() {
+                @Override
+                public int compare(java.io.File f1, java.io.File f2) {
+                    return f1.getName().compareToIgnoreCase(f2.getName());
+                }
+            });
+        }
+        
         final java.util.List<java.io.File> allItems = new java.util.ArrayList<>();
         allItems.addAll(folders);
         allItems.addAll(imageFiles);
         CharSequence[] itemNames = new CharSequence[allItems.size()];
+        PhotoDateCache cache = PhotoDateCache.getInstance(getApplicationContext());
+        java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault());
+        
         for (int i = 0; i < allItems.size(); i++) {
             java.io.File f = allItems.get(i);
             if (f.isDirectory()) {
                 itemNames[i] = "[" + f.getName() + "]";
             } else {
-                itemNames[i] = f.getName();
+                // For image files, try to append date/time if available
+                java.util.Date photoDate = cache.getCachedDate(f.getAbsolutePath());
+                if (photoDate != null) {
+                    itemNames[i] = f.getName() + "  (" + dateFormat.format(photoDate) + ")";
+                } else {
+                    itemNames[i] = f.getName();
+                }
             }
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);

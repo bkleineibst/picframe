@@ -80,6 +80,10 @@
     <!-- Manual photo selection -->
     <string name="action_select_photo">Select photo</string>
     <string name="action_back">Back</string>
+    <string name="main_random_mode_prompt">You cannot select a specific photo in random mode. Please choose a sort order to find and view this photo:</string>
+    <string name="settings_sortOrder_title">Change Sort Order</string>
+    <string name="settings_sortOrder_filename">Filename</string>
+    <string name="settings_sortOrder_date">Photo date/time</string>
     <string name="sett_confirmationDialogMessage">Do you really want to delete your settings information and reset everything to default?</string>
         <!-- Settings-Details Strings -->
     <string name="sett_srcPath_externalSD">Directory</string>

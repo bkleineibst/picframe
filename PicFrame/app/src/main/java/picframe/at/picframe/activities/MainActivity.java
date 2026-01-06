@@ -34,6 +34,8 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.os.CountDownTimer;
 import android.os.Handler;
+import android.preference.PreferenceManager;
+import android.content.SharedPreferences;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -831,12 +833,94 @@ public class MainActivity extends ActionBarActivity {
             } else if (localpage == 0) {
                 rightToLeft = true;
             }
+            
+            int nextPage;
             if (rightToLeft) {
-                localpage++;
+                nextPage = localpage + 1;
             } else {
-                localpage--;
+                nextPage = localpage - 1;
             }
-            pager.setCurrentItem(localpage, true);
+            
+            // Skip duplicates when in date/time sort mode
+            if (AppData.getSortOrder() == 2 && !showExamplePictures) {
+                nextPage = findNextNonDuplicatePage(localpage, nextPage);
+            }
+            
+            pager.setCurrentItem(nextPage, true);
+        }
+    }
+    
+    /**
+     * Find the next non-duplicate page when advancing in date/time order.
+     * Compares file hash and date/time with current page to skip duplicates.
+     */
+    private int findNextNonDuplicatePage(int currentPage, int nextPage) {
+        if (mFilePaths == null || currentPage < 0 || currentPage >= mFilePaths.size()) {
+            return nextPage;
+        }
+        
+        String currentPath = mFilePaths.get(currentPage);
+        PhotoDateCache cache = PhotoDateCache.getInstance(getApplicationContext());
+        java.util.Date currentDate = cache.getCachedDate(currentPath);
+        String currentHash = calculateFileHash(currentPath);
+        
+        if (currentDate == null || currentHash == null) {
+            return nextPage; // Can't check, proceed normally
+        }
+        
+        boolean movingForward = nextPage > currentPage;
+        int direction = movingForward ? 1 : -1;
+        int checkPage = nextPage;
+        
+        // Keep advancing while we find duplicates
+        while (checkPage >= 0 && checkPage < mFilePaths.size()) {
+            String checkPath = mFilePaths.get(checkPage);
+            java.util.Date checkDate = cache.getCachedDate(checkPath);
+            String checkHash = calculateFileHash(checkPath);
+            
+            // If we can't determine, or if it's different, use this page
+            if (checkDate == null || checkHash == null) {
+                return checkPage;
+            }
+            
+            // Check if duplicate (same date and same content)
+            if (currentDate.getTime() == checkDate.getTime() && currentHash.equals(checkHash)) {
+                // Duplicate found, try next page
+                checkPage += direction;
+            } else {
+                // Not a duplicate, use this page
+                return checkPage;
+            }
+        }
+        
+        // Reached end of list, return the boundary
+        return checkPage < 0 ? 0 : (checkPage >= mFilePaths.size() ? mFilePaths.size() - 1 : checkPage);
+    }
+    
+    /**
+     * Calculate MD5 hash of file content for duplicate detection.
+     * Returns null if hash cannot be calculated.
+     */
+    private String calculateFileHash(String filePath) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+            java.io.FileInputStream fis = new java.io.FileInputStream(filePath);
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                md.update(buffer, 0, bytesRead);
+            }
+            fis.close();
+            
+            byte[] hashBytes = md.digest();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -1206,6 +1290,9 @@ public class MainActivity extends ActionBarActivity {
         setSize(); // size is count of images in folder, or constant if example pictures are used
         imagePagerAdapter.notifyDataSetChanged();
         
+        // Execute any pending jump to a specific photo (e.g., after sort order change)
+        executePendingJump();
+        
         // Clear history when file list changes (new shuffle order)
         if (slideshowHistory != null) {
             slideshowHistory.clear();
@@ -1574,21 +1661,62 @@ public class MainActivity extends ActionBarActivity {
                 if (selected.isDirectory()) {
                     showFolderPicker(selected.getAbsolutePath());
                 } else {
-                    String selectedPath = selected.getAbsolutePath();
-                    int index = -1;
-                    if (mFilePaths != null) {
-                        for (int i = 0; i < mFilePaths.size(); i++) {
-                            if (mFilePaths.get(i).equals(selectedPath)) {
-                                index = i;
-                                break;
+                    // If in random mode, prompt to change sort order
+                    if (AppData.getRandomize()) {
+                        final String selectedPath = selected.getAbsolutePath();
+                        AlertDialog.Builder sortBuilder = new AlertDialog.Builder(MainActivity.this);
+                        sortBuilder.setTitle(R.string.settings_sortOrder_title);
+                        sortBuilder.setMessage(R.string.main_random_mode_prompt);
+                        sortBuilder.setPositiveButton(R.string.settings_sortOrder_filename, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // Change to filename sort order
+                                SharedPreferences prefs = AppData.getSharedPreferences();
+                                prefs.edit().putString(getString(R.string.sett_key_sortOrder), "0").commit();
+                                // Schedule jump to selected photo after reload
+                                jumpToPhotoAfterLoad(selectedPath);
+                                // Reload file list in filename order
+                                updateFileList();
+                            }
+                        });
+                        sortBuilder.setNeutralButton(R.string.settings_sortOrder_date, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // Change to date sort order
+                                SharedPreferences prefs = AppData.getSharedPreferences();
+                                prefs.edit().putString(getString(R.string.sett_key_sortOrder), "2").commit();
+                                // Schedule jump to selected photo after reload
+                                jumpToPhotoAfterLoad(selectedPath);
+                                // Reload file list in date order
+                                updateFileList();
+                            }
+                        });
+                        sortBuilder.setNegativeButton(android.R.string.cancel, null);
+                        sortBuilder.show();
+                    } else {
+                        String selectedPath = selected.getAbsolutePath();
+                        debug("Selected photo: " + selectedPath);
+                        int index = -1;
+                        if (mFilePaths != null) {
+                            debug("Searching in " + mFilePaths.size() + " files");
+                            for (int i = 0; i < mFilePaths.size(); i++) {
+                                if (mFilePaths.get(i).equals(selectedPath)) {
+                                    index = i;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    if (index != -1) {
-                        pager.setCurrentItem(index, false);
-                        lastRecordedPage = index;
-                        if (!AppData.getRandomize()) {
+                        debug("Found index: " + index);
+                        if (index != -1) {
+                            debug("Setting current item to: " + index);
+                            pager.setCurrentItem(index, false);
+                            lastRecordedPage = index;
+                            currentPage = index;
+                            AppData.setCurrentPage(index);
+                            
+                            // Resume slideshow if it was paused
                             if (AppData.getSlideshow() && paused) {
+                                debug("Resuming slideshow from manual selection");
                                 paused = false;
                                 setUpSlideShow();
                                 startSlideshowCountDown();
@@ -1596,9 +1724,10 @@ public class MainActivity extends ActionBarActivity {
                                     mPause.setVisibility(View.GONE);
                                 }
                             }
+                        } else {
+                            debug("Photo not found in mFilePaths!");
+                            Toast.makeText(MainActivity.this, R.string.main_toast_noFileFound, Toast.LENGTH_SHORT).show();
                         }
-                    } else {
-                        Toast.makeText(MainActivity.this, R.string.main_toast_noFileFound, Toast.LENGTH_SHORT).show();
                     }
                 }
             }
@@ -1629,6 +1758,61 @@ public class MainActivity extends ActionBarActivity {
             if (name.endsWith(ext)) return true;
         }
         return false;
+    }
+
+    /**
+     * Stores the path to jump to after the file list is reloaded.
+     * This is used when changing sort order to jump to a specific photo.
+     */
+    private String pendingJumpToPath = null;
+
+    /**
+     * Schedules a jump to the specified photo path after the next file load completes.
+     */
+    private void jumpToPhotoAfterLoad(String photoPath) {
+        pendingJumpToPath = photoPath;
+    }
+
+    /**
+     * If a pending jump path is set, finds and jumps to that photo.
+     * Called after LoadFilesTask completes.
+     */
+    private void executePendingJump() {
+        if (pendingJumpToPath != null && mFilePaths != null) {
+            String targetPath = pendingJumpToPath;
+            pendingJumpToPath = null;
+            
+            debug("Executing pending jump to: " + targetPath);
+            int index = -1;
+            for (int i = 0; i < mFilePaths.size(); i++) {
+                if (mFilePaths.get(i).equals(targetPath)) {
+                    index = i;
+                    break;
+                }
+            }
+            
+            if (index != -1) {
+                debug("Found photo at index: " + index);
+                pager.setCurrentItem(index, false);
+                lastRecordedPage = index;
+                currentPage = index;
+                AppData.setCurrentPage(index);
+                
+                // Resume slideshow if it was paused
+                if (AppData.getSlideshow() && paused) {
+                    debug("Resuming slideshow from sort order change");
+                    paused = false;
+                    setUpSlideShow();
+                    startSlideshowCountDown();
+                    if (mPause != null) {
+                        mPause.setVisibility(View.GONE);
+                    }
+                }
+            } else {
+                debug("Photo not found after reload: " + targetPath);
+                Toast.makeText(MainActivity.this, R.string.main_toast_noFileFound, Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 				
 	private String getPathFromUri(Uri uri) {

@@ -18,7 +18,8 @@ CURR_PATH="$(cd "$(dirname "$0")" && pwd)"
 PLATFORM_VERSION_NEEDED=21
 
 # Build options
-GRADLE_ARGUMENTS="assembleRelease"
+# Always rising, or devices won't take the update.
+GRADLE_ARGUMENTS="assembleRelease -PappVersionCode=$(( $(date +%s) / 60 ))"
 PROPERTIES_FILE="$CURR_PATH/local.properties"
 KEYSTORE_PROPERTIES_FILE="$CURR_PATH/release-keystore.properties"
 
@@ -218,7 +219,22 @@ main() {
     detect_java_sdk
     build_apk
     sign_apk
+    if [ "${1:-}" = "--publish" ]; then
+        publish_apk
+    fi
 }
 
-# Run main function
-main
+# ::::::::::::::::::::::::::::::::
+# :: Publish to the app store   ::
+# ::::::::::::::::::::::::::::::::
+publish_apk() {
+    command -v appstore >/dev/null || {
+        echo "ERROR: the appstore command isn't installed. Run: make -C ~/code/other/app-store install-cli" >&2
+        exit 1
+    }
+    appstore publish "$CURR_PATH/PicFrame-release.apk" --notes "$(git log -1 --pretty=%s)"
+}
+
+# Run main function. Pass --publish to send the result to the app store, from where
+# devices update themselves.
+main "$@"

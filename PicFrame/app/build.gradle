@@ -18,7 +18,9 @@ android {
         applicationId "picframe.at.picframe"
         minSdkVersion 21
         targetSdkVersion 34
-        versionCode 13
+        // Publishing passes a higher one, because devices only take an update with
+        // a higher versionCode. See build-release.sh.
+        versionCode project.hasProperty('appVersionCode') ? project.appVersionCode.toInteger() : 13
         versionName "1.6.4"
     }
     buildTypes {

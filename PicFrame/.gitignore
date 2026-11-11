@@ -8,3 +8,4 @@
 *.iml
 *.JPG
 /release-keystore.properties
+/picframe-release.keystore

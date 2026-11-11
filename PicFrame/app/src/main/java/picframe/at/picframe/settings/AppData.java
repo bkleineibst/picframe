@@ -262,14 +262,6 @@ public class AppData {
                 mPrefs.edit().putInt(getAppContext().getString(R.string.sett_key_currentPage), page).commit();
     }
 
-    // flag for slideshow direction
-    public static boolean getDirection() {
-        return mPrefs.getBoolean(getAppContext().getString(R.string.sett_key_direction), true);
-    }
-    public static void setDirection(boolean toggleDirection) {
-        mPrefs.edit().putBoolean(getAppContext().getString(R.string.sett_key_direction), toggleDirection).commit();
-    }
-
     // last alarm time in millisecs
     public static Long getLastAlarmTime() {
         return mPrefs.getLong(getAppContext().getString(R.string.sett_key_lastAlarmTime), -1);

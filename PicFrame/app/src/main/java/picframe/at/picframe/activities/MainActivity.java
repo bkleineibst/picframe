@@ -140,7 +140,6 @@ public class MainActivity extends ActionBarActivity {
     private List<String> mFilePaths;
     private int size;
     private int currentPage;
-    private boolean rightToLeft;
     private Handler actionbarHideHandler;
     private ImageView mPause;
     private LinearLayout mRemainingTimeLayout;
@@ -272,7 +271,6 @@ public class MainActivity extends ActionBarActivity {
         mFadeOutAnim = AnimationUtils.loadAnimation(this, R.anim.fade_out);
         //mConnCheckOC = false;
         //mConnCheckSMB = false;
-        rightToLeft = true;
         paused = false;
         enableGestures();
         //deletePreferences();
@@ -383,8 +381,6 @@ public class MainActivity extends ActionBarActivity {
         if(currentPage >= 0 && currentPage < pager.getAdapter().getCount()) {
             pager.setCurrentItem(currentPage, false);
         }
-
-        rightToLeft = AppData.getDirection();
 
         new AlarmScheduler().scheduleAlarm();
     }
@@ -845,26 +841,17 @@ public class MainActivity extends ActionBarActivity {
     private void pageSwitcher() {
         if (imagePagerAdapter.getCount() > 0 && !paused) {
             int localpage = pager.getCurrentItem();
-            // switch diretion if extremity of slideshow is reacher
-            if (localpage >= imagePagerAdapter.getCount() - 1) {
-                rightToLeft = false;
-            } else if (localpage == 0) {
-                rightToLeft = true;
-            }
-            
-            int nextPage;
-            if (rightToLeft) {
-                nextPage = localpage + 1;
-            } else {
-                nextPage = localpage - 1;
-            }
-            
+            // Always play forward; after the last photo, wrap around to the first
+            boolean wrap = localpage >= imagePagerAdapter.getCount() - 1;
+            int nextPage = wrap ? 0 : localpage + 1;
+
             // Skip duplicates when in date/time sort mode
-            if (AppData.getSortOrder() == 2 && !showExamplePictures) {
+            if (!wrap && AppData.getSortOrder() == 2 && !showExamplePictures) {
                 nextPage = findNextNonDuplicatePage(localpage, nextPage);
             }
-            
-            pager.setCurrentItem(nextPage, true);
+
+            // Jump without animation when wrapping; smooth-scrolling back across every page looks broken
+            pager.setCurrentItem(nextPage, !wrap);
         }
     }
     
@@ -953,9 +940,6 @@ public class MainActivity extends ActionBarActivity {
         // maybe not right here will test
         AppData.setCurrentPage(currentPage);
         debug("SAVING PAGE  " + currentPage);
-
-        // Save the direction of the pageviewer
-        AppData.setDirection(rightToLeft);
     }
 
     private void setUpSlideShow(){

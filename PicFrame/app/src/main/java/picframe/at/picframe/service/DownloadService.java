@@ -49,8 +49,13 @@ public class DownloadService extends Service implements ServiceCallbacks {
     private Intent mainActIntent;
     private Intent stopDownloadIntent;
     private Downloader downloader;
-    private boolean downloading;
+    // static so MainActivity can tell on resume whether a sync is still running
+    private static volatile boolean downloading;
     private boolean finished;
+
+    public static boolean isDownloading() {
+        return downloading;
+    }
     private Intent progressIntent;
 
     // arguments for the downloader class
@@ -197,6 +202,7 @@ public class DownloadService extends Service implements ServiceCallbacks {
                 sendDebugLogMessage("DownloadService: Failed to initialize folders, aborting sync");
                 stopForeground(false);
                 showNotification(Keys.NotificationStates.FAILURE, 0, getString(R.string.service_notif_failureFolderInitFailure));
+                broadcastSyncEnded();
                 stopSelf();
                 return Service.START_NOT_STICKY;
             }
@@ -212,6 +218,7 @@ public class DownloadService extends Service implements ServiceCallbacks {
             if (AppData.sourceTypes.ExternalSD.equals(tmpSource)) {
                 sendDebugLogMessage("DownloadService: FAILURE! Started with SD Card selected");
                 Log.d(TAG, "FAILURE! DownloadService started, while SD Card is selected");
+                broadcastSyncEnded();
                 stopSelf();
                 return Service.START_NOT_STICKY;
             } else if (AppData.sourceTypes.OwnCloud.equals(tmpSource)) {
@@ -463,9 +470,18 @@ public class DownloadService extends Service implements ServiceCallbacks {
             showNotification(Keys.NotificationStates.FINISHED, 0, getString(R.string.service_notif_finishedNoNewFiles));
         } else {
             showNotification(Keys.NotificationStates.FINISHED, 0, (String.valueOf(count) + " " + getString(R.string.service_notif_finishedTextFiles)));
-            broadcastManager.sendBroadcast(new Intent().setAction(Keys.ACTION_DOWNLOAD_FINISHED));  // TODO not only after finished
         }
+        // Always broadcast: the banner must hide, and orphan deletion may have changed files even when count is 0
+        broadcastSyncEnded();
         stopSelf();
+    }
+
+    // Tells MainActivity the sync is over (success or failure) so it hides the progress banner
+    private void broadcastSyncEnded() {
+        if (broadcastManager == null) {
+            broadcastManager = LocalBroadcastManager.getInstance(getApplicationContext());
+        }
+        broadcastManager.sendBroadcast(new Intent().setAction(Keys.ACTION_DOWNLOAD_FINISHED));
     }
 
     @Override
@@ -484,6 +500,7 @@ public class DownloadService extends Service implements ServiceCallbacks {
             // aborted by user - delete notification, end service
             showNotification(Keys.NotificationStates.STOP, 0, null);
         }
+        broadcastSyncEnded();
         interruptDownloaderAndStopService();
     }
 

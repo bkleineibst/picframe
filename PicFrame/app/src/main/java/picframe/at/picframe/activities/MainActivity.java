@@ -113,6 +113,7 @@ public class MainActivity extends ActionBarActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int REQUEST_MANAGE_EXTERNAL_STORAGE = 1001;
     private ResponseReceiver receiver;
+    private BroadcastReceiver debugLogReceiver;
     LocalBroadcastManager broadcastManager;
 
     private ImagePagerAdapter imagePagerAdapter;
@@ -232,6 +233,10 @@ public class MainActivity extends ActionBarActivity {
     private void hideSyncProgress() {
         if (syncProgressBarView != null) {
             syncProgressBarView.setVisibility(View.GONE);
+        }
+        // The debug log's only toggle lives on the banner, so it must go with it
+        if (debugLogOverlay != null) {
+            debugLogOverlay.setVisibility(View.GONE);
         }
         appendDebugLog("Sync progress hidden.");
     }
@@ -473,22 +478,25 @@ public class MainActivity extends ActionBarActivity {
     }
 
     protected void onResume() {
-                // Register debug log broadcast receiver
-                IntentFilter debugLogFilter = new IntentFilter();
-                debugLogFilter.addAction("picframe.at.picframe.DEBUG_LOG_MESSAGE");
-                if (broadcastManager == null) {
-                    broadcastManager = LocalBroadcastManager.getInstance(getApplicationContext());
-                }
-                broadcastManager.registerReceiver(new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context context, Intent intent) {
-                        if ("picframe.at.picframe.DEBUG_LOG_MESSAGE".equals(intent.getAction())) {
-                            String msg = intent.getStringExtra("debug_message");
-                            if (msg != null) appendDebugLog(msg);
-                        }
-                    }
-                }, debugLogFilter);
         super.onResume();
+        if (broadcastManager == null) {
+            broadcastManager = LocalBroadcastManager.getInstance(getApplicationContext());
+        }
+        // Register debug log broadcast receiver (unregistered in onPause)
+        if (debugLogReceiver == null) {
+            IntentFilter debugLogFilter = new IntentFilter();
+            debugLogFilter.addAction("picframe.at.picframe.DEBUG_LOG_MESSAGE");
+            debugLogReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if ("picframe.at.picframe.DEBUG_LOG_MESSAGE".equals(intent.getAction())) {
+                        String msg = intent.getStringExtra("debug_message");
+                        if (msg != null) appendDebugLog(msg);
+                    }
+                }
+            };
+            broadcastManager.registerReceiver(debugLogReceiver, debugLogFilter);
+        }
 
         debug("onResume");
         // refresh toolbar options (hide/show downloadNow)
@@ -513,6 +521,12 @@ public class MainActivity extends ActionBarActivity {
             filter.addCategory(Intent.CATEGORY_DEFAULT);
             receiver = new ResponseReceiver();
             broadcastManager.registerReceiver(receiver, filter);
+        }
+        // The receiver is off while paused (e.g. Settings/About open), so the
+        // "finished" broadcast may have been missed. Catch up here.
+        if (syncProgressBarView != null && syncProgressBarView.getVisibility() == View.VISIBLE
+                && !DownloadService.isDownloading()) {
+            hideSyncProgress();
         }
 
         if(GlobalPhoneFuncs.getFileList(AppData.getImagePath()).size() > 0) {
@@ -684,6 +698,10 @@ public class MainActivity extends ActionBarActivity {
         // unregister receiver, because if the activity is not in focus, we want no UI updates
         broadcastManager.unregisterReceiver(receiver);
         receiver = null;
+        if (debugLogReceiver != null) {
+            broadcastManager.unregisterReceiver(debugLogReceiver);
+            debugLogReceiver = null;
+        }
         if(click_on_settings_dialog != null){
             click_on_settings_dialog.cancel();
             click_on_settings_dialog.dismiss();

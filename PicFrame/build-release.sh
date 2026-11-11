@@ -111,19 +111,19 @@ detect_android_sdk() {
 # :: Detect Java SDK            ::
 # ::::::::::::::::::::::::::::::::
 detect_java_sdk() {
-    # For this old project (Gradle 2.10), we need JDK 8
-    JDK8_PATH=$(/usr/libexec/java_home -v 1.8 2>/dev/null)
-    
-    if [ -n "$JDK8_PATH" ]; then
-        JAVA_SDK_PATH="$JDK8_PATH"
-        export JAVA_HOME="$JDK8_PATH"
-        echo "Java SDK (JDK 8): $JAVA_SDK_PATH"
+    # Android Gradle plugin 8 needs JDK 17
+    JDK17_PATH=$(/usr/libexec/java_home -v 17 2>/dev/null)
+
+    if [ -n "$JDK17_PATH" ]; then
+        JAVA_SDK_PATH="$JDK17_PATH"
+        export JAVA_HOME="$JDK17_PATH"
+        echo "Java SDK (JDK 17): $JAVA_SDK_PATH"
     elif [ -n "$JAVA_HOME" ]; then
         JAVA_SDK_PATH="$JAVA_HOME"
-        echo "Warning: JDK 8 not found, using JAVA_HOME: $JAVA_HOME"
-        echo "Build may fail with newer Java versions (Gradle 2.10 requires Java 8)"
+        echo "Warning: JDK 17 not found, using JAVA_HOME: $JAVA_HOME"
+        echo "Build may fail with other Java versions (Android Gradle plugin 8 requires Java 17)"
     else
-        echo "ERROR: JAVA_HOME environment variable is not set and JDK 8 not found."
+        echo "ERROR: JAVA_HOME environment variable is not set and JDK 17 not found."
         exit 1
     fi
 }
@@ -155,7 +155,7 @@ sign_apk() {
     echo "Signing APK..."
     echo ""
 
-    PATH_TO_APK="$CURR_PATH/app/build/outputs/apk/"
+    PATH_TO_APK="$CURR_PATH/app/build/outputs/apk/release/"
     UNSIGNED_APK="${PATH_TO_APK}app-release-unsigned.apk"
     ALIGNED_APK="${PATH_TO_APK}app-release-aligned.apk"
     SIGNED_APK="${PATH_TO_APK}app-release-signed.apk"

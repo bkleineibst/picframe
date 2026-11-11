@@ -256,6 +256,14 @@ public class DownloadService extends Service implements ServiceCallbacks {
         Log.d(TAG, "Service - onDestroy");
     }
 
+    // Android 15+ caps dataSync foreground services at 6 hours a day. The service must
+    // stop when told, or the system crashes the app.
+    @Override
+    public void onTimeout(int startId, int fgsType) {
+        sendDebugLogMessage("DownloadService: foreground service time limit reached, stopping sync");
+        stopDownload();
+    }
+
     private void interruptDownloaderAndStopService() {
         if (downloader != null) {
             if (downloading || !finished) {

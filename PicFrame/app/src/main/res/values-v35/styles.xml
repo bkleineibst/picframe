@@ -1,0 +1,14 @@
+<resources>
+
+    <!-- Same as values/styles.xml, plus the opt-out from the edge-to-edge layout that
+         Android 15 enforces for targetSdk 35. Without it, content draws behind the
+         navigation bar. Keep the two in sync. -->
+    <style name="AppTheme" parent="@style/Theme.AppCompat">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowActionBarOverlay">true</item>
+        <item name="windowActionBarOverlay">true</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+
+</resources>

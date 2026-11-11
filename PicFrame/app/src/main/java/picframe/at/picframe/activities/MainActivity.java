@@ -40,7 +40,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.PageTransformer;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -91,7 +91,7 @@ import picframe.at.picframe.helper.viewpager.ZoomOutPageTransformer;
 import picframe.at.picframe.service.DownloadService;
 import picframe.at.picframe.settings.AppData;
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends AppCompatActivity {
     /**
      * Append a message to the debug log overlay and scroll to bottom.
      */

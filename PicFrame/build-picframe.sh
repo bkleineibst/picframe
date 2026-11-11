@@ -108,19 +108,19 @@ check_android_home() {
 # :: Check for JAVA_HOME        ::
 # ::::::::::::::::::::::::::::::::
 check_java_home() {
-    # For this old project (Gradle 2.10), we need JDK 8
-    JDK8_PATH=$(/usr/libexec/java_home -v 1.8 2>/dev/null)
-    
-    if [ -n "$JDK8_PATH" ]; then
+    # Android Gradle plugin 8 needs JDK 17
+    JDK17_PATH=$(/usr/libexec/java_home -v 17 2>/dev/null)
+
+    if [ -n "$JDK17_PATH" ]; then
         echo "Java directory...."
-        echo "Using JDK 8 (required for Gradle 2.10): \"$JDK8_PATH\""
-        JAVA_SDK_PATH="$JDK8_PATH"
-        export JAVA_HOME="$JDK8_PATH"
+        echo "Using JDK 17 (required for Android Gradle plugin 8): \"$JDK17_PATH\""
+        JAVA_SDK_PATH="$JDK17_PATH"
+        export JAVA_HOME="$JDK17_PATH"
         wait_for_key
     elif [ -n "$JAVA_HOME" ]; then
         echo "Java directory...."
         echo "JAVA_HOME: \"$JAVA_HOME\""
-        echo "Warning: This project requires JDK 8 for Gradle 2.10"
+        echo "Warning: This project requires JDK 17 for Android Gradle plugin 8"
         JAVA_SDK_PATH="$JAVA_HOME"
         wait_for_key
     else
@@ -264,15 +264,15 @@ build_apk() {
     # Build .apk file
     cd "$CURR_PATH"
     
-    # Use JDK 8 for building (old Gradle 2.10 doesn't support newer Java versions)
-    # Check for JDK 8 first, then fall back to JAVA_HOME
-    JDK8_PATH=$(/usr/libexec/java_home -v 1.8 2>/dev/null)
-    if [ -n "$JDK8_PATH" ]; then
-        echo "Using JDK 8 for Gradle build: $JDK8_PATH"
-        export JAVA_HOME="$JDK8_PATH"
+    # Use JDK 17 for building (Android Gradle plugin 8 requires it)
+    # Check for JDK 17 first, then fall back to JAVA_HOME
+    JDK17_PATH=$(/usr/libexec/java_home -v 17 2>/dev/null)
+    if [ -n "$JDK17_PATH" ]; then
+        echo "Using JDK 17 for Gradle build: $JDK17_PATH"
+        export JAVA_HOME="$JDK17_PATH"
     else
-        echo "Warning: JDK 8 not found. Build may fail with newer Java versions."
-        echo "This project uses Gradle 2.10 which requires Java 8."
+        echo "Warning: JDK 17 not found. Build may fail with other Java versions."
+        echo "This project uses Android Gradle plugin 8, which requires Java 17."
     fi
     
     ./gradlew $GRADLE_ARGUMENTS
@@ -286,7 +286,7 @@ build_apk() {
     echo ""
     echo ""
     
-    PATH_TO_APK="$CURR_PATH/app/build/outputs/apk/"
+    PATH_TO_APK="$CURR_PATH/app/build/outputs/apk/release/"
     OLD_FILENAME="app-release-unsigned.apk"
     
     if [ "$APK_TYPE" = "RELEASE" ]; then
@@ -340,7 +340,7 @@ build_apk() {
     
     if [ $? -ne 0 ]; then
         echo "Moving the file failed, please check this directory:"
-        echo "./app/build/outputs/apk/"
+        echo "./app/build/outputs/apk/release/"
         EVERYTHING_OK=false
     fi
     

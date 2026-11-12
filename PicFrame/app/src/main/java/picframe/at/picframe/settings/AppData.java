@@ -278,6 +278,15 @@ public class AppData {
     public static void setNextAlarmTime (Long time) {
         mPrefs.edit().putLong(getAppContext().getString(R.string.sett_key_nextAlarmTime), time).commit();
     }
+
+    // a scheduled sync that Android wouldn't start in the background; run it when the app is shown
+    public static boolean getSyncPending() {
+        return mPrefs.getBoolean(getAppContext().getString(R.string.sett_key_syncPending), false);
+    }
+
+    public static void setSyncPending(boolean pending) {
+        mPrefs.edit().putBoolean(getAppContext().getString(R.string.sett_key_syncPending), pending).commit();
+    }
 /* TODO
     // holds the remaining time to display the current image
     public static int getRemainingDisplayTime() {

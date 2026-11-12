@@ -50,20 +50,27 @@ public class AlarmReceiver extends BroadcastReceiver {
 //        Long scheduledAlarm = lastAlarmTime+AppData.getUpdateIntervalInHours();
         Long currentTime = new GregorianCalendar().getTimeInMillis();
 
-        Intent startDownloadIntent = new Intent(context, DownloadService.class);
-        startDownloadIntent.setAction(Keys.ACTION_STARTDOWNLOAD);
-        // On Android O (API 26) and above, we must use startForegroundService for background starts
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(startDownloadIntent);
-        } else {
-            context.startService(startDownloadIntent);
-        }
-
+        // Book the next sync before starting this one, so a refused start can't stall the schedule
         AppData.setLastAlarmTime(currentTime);
 
         Log.d(TAG, "Current Time    : " + tc.millisecondsToDate(currentTime));
         AlarmScheduler alarmScheduler = new AlarmScheduler();
         Long nextAlarm = alarmScheduler.scheduleAlarm();
+
+        Intent startDownloadIntent = new Intent(context, DownloadService.class);
+        startDownloadIntent.setAction(Keys.ACTION_STARTDOWNLOAD);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(startDownloadIntent);
+            } else {
+                context.startService(startDownloadIntent);
+            }
+        } catch (IllegalStateException e) {
+            // Android 12+ refuses to start a foreground service while the app is in the
+            // background (e.g. screen off). Sync the next time the slideshow is on screen instead.
+            Log.d(TAG, "Sync not allowed in background, deferring until the app is shown", e);
+            AppData.setSyncPending(true);
+        }
         Log.d(TAG, "Next Alarm      : "+tc.millisecondsToDate(nextAlarm));
         Log.d(TAG,"Start time: " + tc.millisecondsToDate(currentTime) + " " + (currentTime));
         Log.d(TAG, "Go OFF time: " + tc.millisecondsToDate(nextAlarm) + " " + nextAlarm);

@@ -524,6 +524,14 @@ public class MainActivity extends AppCompatActivity {
                 && !DownloadService.isDownloading()) {
             hideSyncProgress();
         }
+        // Run the scheduled sync that couldn't start while the app was in the background
+        if (AppData.getSyncPending()) {
+            AppData.setSyncPending(false);
+            if (AppData.sourceTypes.OwnCloud.equals(AppData.getSourceType())
+                    && AppData.getLoginSuccessful() && !DownloadService.isDownloading()) {
+                startSync();
+            }
+        }
 
         if(GlobalPhoneFuncs.getFileList(AppData.getImagePath()).size() > 0) {
             if (!AppData.getImagePath().equals(mOldPath) || mOldRecursive != AppData.getRecursiveSearch()) {
@@ -606,14 +614,7 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.action_download:
                 debug("dowdnload now clicked");
-                showSyncProgress(getString(R.string.syncing), "", 0);
-                Intent startDownloadIntent = new Intent(mContext, DownloadService.class);
-                startDownloadIntent.setAction(Keys.ACTION_STARTDOWNLOAD);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(startDownloadIntent);
-                } else {
-                    startService(startDownloadIntent);
-                }
+                startSync();
                 return true;
             case R.id.action_about:
                 // If kiosk mode is enabled, require password for about screen too
@@ -645,6 +646,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     
+    private void startSync() {
+        showSyncProgress(getString(R.string.syncing), "", 0);
+        Intent startDownloadIntent = new Intent(mContext, DownloadService.class);
+        startDownloadIntent.setAction(Keys.ACTION_STARTDOWNLOAD);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(startDownloadIntent);
+        } else {
+            startService(startDownloadIntent);
+        }
+    }
+
     /**
      * Shows a password dialog for kiosk mode. If the password is correct, runs the provided action.
      * @param onSuccess The action to run if the password is correct

@@ -923,6 +923,7 @@
     <string name="sett_key_currentPage" translatable="false">currentpage</string>
     <string name="sett_key_lastAlarmTime" translatable="false">alarmtime</string>
     <string name="sett_key_nextAlarmTime" translatable="false">nextalarmtime</string>
+    <string name="sett_key_syncPending" translatable="false">syncpending</string>
     <string name="status_downloadIntervalNoDownload">No download scheduled</string>
     <!-- STATUS STRINGS END -->
 

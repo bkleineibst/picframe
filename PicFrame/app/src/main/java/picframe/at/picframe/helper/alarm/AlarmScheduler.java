@@ -9,7 +9,6 @@ import android.util.Log;
 import java.util.GregorianCalendar;
 
 import picframe.at.picframe.activities._MainApp;
-import picframe.at.picframe.activities.MainActivity;
 import picframe.at.picframe.settings.AppData;
 
 /**
@@ -69,18 +68,22 @@ public class AlarmScheduler {
         return nextAlarmTime;
     }
 
+    // The application context, not MainActivity's: the alarm can fire in a fresh process
+    // where MainActivity was never created
+    private static Context appContext() {
+        return _MainApp.getINSTANCE().getApplicationContext();
+    }
+
     private void setAlarm (Long nextAlarmTime){
-        Intent intent = new Intent(MainActivity.getContext(),AlarmReceiver.class);
+        Intent intent = new Intent(appContext(), AlarmReceiver.class);
 //        intent.setAction("ACTION_UPDATE_ALARM");
-        alarmManager.set(AlarmManager.RTC_WAKEUP, nextAlarmTime, PendingIntent.getBroadcast(MainActivity.getContext(), 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        alarmManager.set(AlarmManager.RTC_WAKEUP, nextAlarmTime, PendingIntent.getBroadcast(appContext(), 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
     }
 
     private void deleteAlarm(){
         Log.d(TAG, " DELETE ALARMS ");
-        if (MainActivity.getContext() == null)
-            return;
-        Intent i = new Intent(MainActivity.getContext(),AlarmReceiver.class);
-        PendingIntent p = PendingIntent.getBroadcast(MainActivity.getContext(), 1, i, PendingIntent.FLAG_IMMUTABLE);
+        Intent i = new Intent(appContext(), AlarmReceiver.class);
+        PendingIntent p = PendingIntent.getBroadcast(appContext(), 1, i, PendingIntent.FLAG_IMMUTABLE);
         alarmManager.cancel(p);
         p.cancel();
     }

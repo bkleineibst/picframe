@@ -45,8 +45,7 @@ public class ConnectionCheck_OC implements Runnable {
             Log.i(TAG, "dump:\n" +
                     "#srcPath:" + AppData.getSourcePath() + "\n" +
                     "#uri:" + serverUri.toString() + "\n" +
-                    "#username:" + AppData.getUserName() + "\n" +
-                    "#password:" + AppData.getUserPassword() + "\n");
+                    "#username:" + AppData.getUserName() + "\n");
         }
 
         private void buildClient() {

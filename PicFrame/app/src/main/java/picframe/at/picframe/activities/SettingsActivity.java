@@ -109,11 +109,20 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
     private void printAllPreferences() {
         Map<String, ?> keyMap = mPrefs.getAll();
         for (String e : keyMap.keySet()) {
-            debug("DUMP| Key: " + e + " ++ Value: " + keyMap.get(e));
+            debug("DUMP| Key: " + e + " ++ Value: " + loggable(e, keyMap.get(e)));
         }
 
         alarmScheduler = new AlarmScheduler();
 
+    }
+
+    // Passwords must never reach logcat
+    private Object loggable(String key, Object value) {
+        if (getString(R.string.sett_key_password).equals(key)
+                || getString(R.string.sett_key_kiosk_password).equals(key)) {
+            return "(hidden)";
+        }
+        return value;
     }
 
     @Override
@@ -197,7 +206,7 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (sharedPreferences != null && key != null) {
-            debug("CHANGED| Key:" + key + " ++ Value: " + sharedPreferences.getAll().get(key));
+            debug("CHANGED| Key:" + key + " ++ Value: " + loggable(key, sharedPreferences.getAll().get(key)));
         }
         
         // Handle kiosk mode validation
